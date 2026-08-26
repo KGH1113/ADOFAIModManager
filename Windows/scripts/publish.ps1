@@ -9,11 +9,18 @@ $project = Join-Path $windowsRoot "ADOFAIModManager.Windows\ADOFAIModManager.Win
 $output = Join-Path $windowsRoot "dist\$Runtime"
 
 dotnet restore $project -r $Runtime
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet restore failed. Install a stable .NET 10 SDK and review the error above."
+}
+
 dotnet publish $project `
     -c $Configuration `
     -r $Runtime `
     -p:PublishProfile=win-x64 `
     -o $output
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet publish failed. Review the build error above."
+}
 
 $executable = Join-Path $output "ADOFAIModManager.Windows.exe"
 if (-not (Test-Path $executable)) {

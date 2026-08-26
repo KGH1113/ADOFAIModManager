@@ -18,7 +18,9 @@ Windows 10 build 19041 이상과 Windows 11을 대상으로 하는 WinUI 3 MVP�
 
 ## 빌드
 
-Visual Studio 2026의 WinUI 앱 개발 워크로드와 .NET 10 SDK가 필요합니다.
+Visual Studio 2026의 WinUI 앱 개발 워크로드와 안정 버전 .NET 10 SDK가 필요합니다.
+`global.json`은 10.0.100 이상의 최신 .NET 10 feature band로 자동 앞으로
+이동하므로 10.0.200, 10.0.300, 10.0.400 등을 모두 사용할 수 있습니다.
 저장소 루트의 `ADOFAIModManager.Windows.slnx`를 Visual Studio에서 열면 앱과
 검사 프로젝트가 함께 로드됩니다. 명령행에서는 다음과 같이 빌드할 수 있습니다.
 
