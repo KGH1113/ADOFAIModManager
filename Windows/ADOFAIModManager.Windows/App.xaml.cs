@@ -2,6 +2,7 @@ using ADOFAIModManager.Windows.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using Windows.ApplicationModel.Activation;
+using WinUILaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
 
 namespace ADOFAIModManager.Windows;
 
@@ -12,7 +13,7 @@ public partial class App : Application
 
     public App() => InitializeComponent();
 
-    protected override async void OnLaunched(LaunchActivatedEventArgs args)
+    protected override async void OnLaunched(WinUILaunchActivatedEventArgs args)
     {
         if (UserInstallService.HandleMaintenanceArguments())
         {
