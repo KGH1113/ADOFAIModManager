@@ -17,7 +17,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = ViewModel;
+        Root.DataContext = ViewModel;
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(TitleBar);
 
@@ -28,7 +28,7 @@ public sealed partial class MainWindow : Window
         var hwnd = WindowNative.GetWindowHandle(this);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
         var appWindow = AppWindow.GetFromWindowId(windowId);
-        appWindow.Resize(new Windows.Graphics.SizeInt32(1040, 720));
+        appWindow.Resize(new global::Windows.Graphics.SizeInt32(1040, 720));
         var icon = Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico");
         if (File.Exists(icon))
             appWindow.SetIcon(icon);
