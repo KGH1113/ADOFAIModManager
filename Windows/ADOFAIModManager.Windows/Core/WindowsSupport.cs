@@ -41,6 +41,18 @@ internal static class Spec
         ".cctor",
         InsertPlace.Before);
 
+    public static readonly EntryPointInfo StartingPoint = new(
+        "Assembly-CSharp.dll",
+        "ADOStartup",
+        "Startup",
+        InsertPlace.Before);
+
+    public static readonly EntryPointInfo UIStartingPoint = new(
+        "Assembly-CSharp.dll",
+        "ADOStartup",
+        "Startup",
+        InsertPlace.After);
+
     public static readonly string[] PayloadFiles =
     [
         "UnityModManager.dll",

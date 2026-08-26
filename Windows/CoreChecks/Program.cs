@@ -5,6 +5,21 @@ using NativeUmm;
 if (GameLayout.Detect(Path.Combine(Path.GetTempPath(), "adofai-does-not-exist")) is not null)
     throw new InvalidOperationException("Invalid game directory was accepted.");
 
+if (Spec.EntryPoint.ToConfigString()
+        != "[UnityEngine.CoreModule.dll]UnityEngine.MonoBehaviour.cctor:Before"
+    || Spec.StartingPoint.ToConfigString()
+        != "[Assembly-CSharp.dll]ADOStartup.Startup:Before"
+    || Spec.UIStartingPoint.ToConfigString()
+        != "[Assembly-CSharp.dll]ADOStartup.Startup:After")
+    throw new InvalidOperationException("ADOFAI UMM startup points are incorrect.");
+
+var generatedConfig = Installer.BuildGameConfig().Root
+    ?? throw new InvalidOperationException("Generated UMM config has no root element.");
+if (generatedConfig.Element("EntryPoint")?.Value != Spec.EntryPoint.ToConfigString()
+    || generatedConfig.Element("StartingPoint")?.Value != Spec.StartingPoint.ToConfigString()
+    || generatedConfig.Element("UIStartingPoint")?.Value != Spec.UIStartingPoint.ToConfigString())
+    throw new InvalidOperationException("Generated UMM config does not use the ADOFAI startup points.");
+
 var testRoot = Path.Combine(Path.GetTempPath(), $"adofai-windows-core-checks-{Guid.NewGuid():N}");
 try
 {
@@ -45,7 +60,7 @@ try
     }
     ExpectInvalidArchive(layout, ratioZip, "unsafe compression ratio");
 
-    Console.WriteLine("Windows core checks passed: layout validation, valid mod inspection, path traversal, and ZIP ratio guards.");
+    Console.WriteLine("Windows core checks passed: UMM startup points, layout validation, mod inspection, and ZIP guards.");
 }
 finally
 {

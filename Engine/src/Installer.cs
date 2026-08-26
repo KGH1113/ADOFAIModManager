@@ -265,7 +265,7 @@ internal sealed class Installer(GameLayout layout)
         }
     }
 
-    private static XDocument BuildGameConfig()
+    internal static XDocument BuildGameConfig()
     {
         return new XDocument(
             new XElement("Config",
@@ -275,8 +275,8 @@ internal sealed class Installer(GameLayout layout)
                 new XElement("ModInfo", "Info.json"),
                 new XElement("GameExe", "A Dance of Fire and Ice.exe"),
                 new XElement("EntryPoint", Spec.EntryPoint.ToConfigString()),
-                new XElement("StartingPoint", Spec.EntryPoint.ToConfigString()),
-                new XElement("UIStartingPoint", Spec.EntryPoint.ToConfigString()),
+                new XElement("StartingPoint", Spec.StartingPoint.ToConfigString()),
+                new XElement("UIStartingPoint", Spec.UIStartingPoint.ToConfigString()),
                 new XElement("MinimalManagerVersion", "0.22.14"),
                 new XElement("Comment", "Required minimum game version 2.7.0")));
     }
