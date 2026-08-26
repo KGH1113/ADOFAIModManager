@@ -39,7 +39,6 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
                         <ToggleButton
@@ -60,24 +59,24 @@
                                        Visibility="{Binding RequirementVisibility}" />
                         </StackPanel>
 
-                        <Button Grid.Column="2" Content="제거" Visibility="{Binding InstalledVisibility}"
-                                Click="UninstallMod_Click" VerticalAlignment="Center" />
-                        <Button Grid.Column="2" Content="복원" Visibility="{Binding RemovedVisibility}"
-                                Click="RestoreMod_Click" VerticalAlignment="Center" />
-                        <Button Grid.Column="3" Content="영구 삭제" Visibility="{Binding RemovedVisibility}"
+                        <Button Grid.Column="2" Content="삭제"
                                 Click="DeleteMod_Click" VerticalAlignment="Center" />
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
 
-        <Border x:Name="DropOverlay" Grid.RowSpan="2" Visibility="Collapsed" Margin="16"
-                BorderBrush="{ThemeResource AccentFillColorDefaultBrush}" BorderThickness="2" CornerRadius="14"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                <FontIcon Glyph="&#xE74D;" FontSize="42" />
-                <TextBlock Text="모드 ZIP을 여기에 놓으세요" Style="{ThemeResource SubtitleTextBlockStyle}" />
-            </StackPanel>
-        </Border>
+        <Grid x:Name="DropOverlay" Grid.RowSpan="2" Visibility="Collapsed"
+              Background="{ThemeResource SmokeFillColorDefaultBrush}">
+            <Border Padding="36,30" CornerRadius="16"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{ThemeResource AccentFillColorDefaultBrush}" BorderThickness="2">
+                <StackPanel HorizontalAlignment="Center" Spacing="12">
+                    <FontIcon Glyph="&#xE74D;" FontSize="42" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                    <TextBlock Text="모드 ZIP을 여기에 놓으세요" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Page>

@@ -57,7 +57,9 @@
                     Padding="14,8"
                     CornerRadius="10"
                     Visibility="{Binding BusyVisibility, Mode=OneWay}"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
+                    BorderThickness="1">
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <ProgressRing Width="18" Height="18" IsActive="{Binding IsBusy, Mode=OneWay}" />
                         <TextBlock Text="{Binding Activity, Mode=OneWay}" VerticalAlignment="Center" />

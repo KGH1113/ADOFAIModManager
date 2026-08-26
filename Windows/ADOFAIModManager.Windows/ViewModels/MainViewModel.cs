@@ -191,18 +191,6 @@ internal sealed class MainViewModel : ObservableObject
             mod.Enabled = old;
     }
 
-    public Task UninstallModAsync(ModViewItem mod) => RunGameActionAsync("모드 제거 중…", layout =>
-    {
-        _gameService.UninstallMod(layout, mod.Path);
-        return Task.CompletedTask;
-    });
-
-    public Task RestoreModAsync(ModViewItem mod) => RunGameActionAsync("모드 복원 중…", layout =>
-    {
-        _gameService.RestoreMod(layout, mod.Path);
-        return Task.CompletedTask;
-    });
-
     public Task PermanentlyRemoveModAsync(ModViewItem mod) => RunGameActionAsync("모드 삭제 중…", layout =>
     {
         _gameService.PermanentlyRemoveMod(layout, mod.Path);
@@ -290,13 +278,13 @@ internal sealed class MainViewModel : ObservableObject
         if (includeMods)
         {
             var mods = await Task.Run(() => _gameService.ReadMods(layout));
-            Mods.Clear();
+            var updated = new List<ModViewItem>(mods.Count);
             foreach (var mod in mods)
             {
                 var requirements = string.Join(", ", mod.Requirements
                     .Where(item => item.State != "OK")
                     .Select(item => $"{item.Id}: {item.State}"));
-                Mods.Add(new ModViewItem
+                updated.Add(new ModViewItem
                 {
                     Id = mod.Id,
                     Name = mod.DisplayName,
@@ -309,10 +297,39 @@ internal sealed class MainViewModel : ObservableObject
                     RequirementSummary = requirements
                 });
             }
+            SynchronizeMods(updated);
         }
 
         RaiseGameState();
         await RefreshLogsAsync();
+    }
+
+    private void SynchronizeMods(IReadOnlyList<ModViewItem> updated)
+    {
+        for (var targetIndex = 0; targetIndex < updated.Count; targetIndex++)
+        {
+            var incoming = updated[targetIndex];
+            var existingIndex = -1;
+            for (var index = targetIndex; index < Mods.Count; index++)
+            {
+                if (!Mods[index].Path.Equals(incoming.Path, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                existingIndex = index;
+                break;
+            }
+
+            if (existingIndex < 0)
+                Mods.Insert(targetIndex, incoming);
+            else
+            {
+                if (existingIndex != targetIndex)
+                    Mods.Move(existingIndex, targetIndex);
+                Mods[targetIndex].UpdateFrom(incoming);
+            }
+        }
+
+        while (Mods.Count > updated.Count)
+            Mods.RemoveAt(Mods.Count - 1);
     }
 
     private void AppendOperationLog()

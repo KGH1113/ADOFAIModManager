@@ -8,7 +8,7 @@ Windows 10 build 19041 이상과 Windows 11을 대상으로 하는 WinUI 3 MVP�
 - Steam 라이브러리와 `appmanifest_977950.acf`를 통한 얼불춤 자동 탐색
 - 게임 폴더 직접 선택
 - UMM 설치, 복구 설치, 제거, 원본 복원
-- 모드 ZIP 검사, 설치, 교체, 활성화, 제거, 복원, 영구 삭제
+- 모드 ZIP 검사, 설치, 교체, 활성화, Mac 앱과 같은 즉시 삭제
 - ZIP 드래그 앤 드롭과 Windows `연결 프로그램` 등록
 - 게임 로그 최근 30줄, UMM 로그, 작업 기록
 - `%LOCALAPPDATA%\Programs\ADOFAIModManager` 사용자 단위 설치

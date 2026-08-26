@@ -60,33 +60,11 @@ public sealed partial class ModsPage : Page
         await ViewModel.SetModEnabledAsync(mod, toggle.IsChecked == true);
     }
 
-    private async void UninstallMod_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.DataContext is ModViewItem mod)
-            await ViewModel.UninstallModAsync(mod);
-    }
-
-    private async void RestoreMod_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.DataContext is ModViewItem mod)
-            await ViewModel.RestoreModAsync(mod);
-    }
-
     private async void DeleteMod_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not ModViewItem mod)
             return;
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = $"‘{mod.Name}’ 모드를 영구 삭제하시겠습니까?",
-            Content = "이 작업은 되돌릴 수 없습니다.",
-            PrimaryButtonText = "영구 삭제",
-            CloseButtonText = "취소",
-            DefaultButton = ContentDialogButton.Close
-        };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-            await ViewModel.PermanentlyRemoveModAsync(mod);
+        await ViewModel.PermanentlyRemoveModAsync(mod);
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await ViewModel.RefreshAsync();
