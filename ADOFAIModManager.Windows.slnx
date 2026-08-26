@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Windows/ADOFAIModManager.Windows/ADOFAIModManager.Windows.csproj" />
+  <Project Path="Windows/CoreChecks/CoreChecks.csproj" />
+  <Project Path="Windows/LogicChecks/LogicChecks.csproj" />
+</Solution>

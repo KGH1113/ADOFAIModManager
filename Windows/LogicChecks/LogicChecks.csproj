@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <PackageReference Include="dnlib" Version="4.5.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Engine\src\Installer.cs" Link="Core\Installer.cs" />
+    <Compile Include="..\..\Engine\src\ModManager.cs" Link="Core\ModManager.cs" />
+    <Compile Include="..\ADOFAIModManager.Windows\Core\*.cs" Link="Core\%(Filename)%(Extension)" />
+    <Compile Include="..\ADOFAIModManager.Windows\Models\*.cs" Link="Models\%(Filename)%(Extension)" />
+    <Compile Include="..\ADOFAIModManager.Windows\Services\*.cs" Link="Services\%(Filename)%(Extension)" />
+    <Compile Include="..\ADOFAIModManager.Windows\ViewModels\*.cs" Link="ViewModels\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

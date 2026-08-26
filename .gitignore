@@ -1,0 +1,37 @@
+# macOS / SwiftPM
+.DS_Store
+/.build/
+/.build-tools/
+/.swiftpm/
+/build/
+/dist/
+
+# .NET / Visual Studio
+**/bin/
+**/obj/
+/.packages/
+/.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Editors
+/.vscode/
+/.idea/
+
+# Local logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Signing material and release secrets
+*.p12
+*.pfx
+*.cer
+*.key
+*.pem
+*.mobileprovision
+.env
+.env.*
+!.env.example

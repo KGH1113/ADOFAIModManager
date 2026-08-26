@@ -1,0 +1,3 @@
+Harmony is distributed under the MIT License.
+Copyright (c) 2017 Andreas Pardeike.
+Source: https://github.com/pardeike/Harmony

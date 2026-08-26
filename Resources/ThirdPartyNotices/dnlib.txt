@@ -1,0 +1,3 @@
+dnlib is distributed under the MIT License.
+Copyright (c) 2012-2025 0xd4d/dnSpyEx contributors.
+Source: https://github.com/0xd4d/dnlib

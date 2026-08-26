@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="dnlib" Version="4.5.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Engine\src\Installer.cs" Link="Core\Installer.cs" />
+    <Compile Include="..\..\Engine\src\ModManager.cs" Link="Core\ModManager.cs" />
+    <Compile Include="..\ADOFAIModManager.Windows\Core\WindowsSupport.cs" Link="Core\WindowsSupport.cs" />
+    <Compile Include="..\ADOFAIModManager.Windows\Core\SteamLocator.cs" Link="Core\SteamLocator.cs" />
+    <Compile Include="..\ADOFAIModManager.Windows\Core\GameLayout.cs" Link="Core\GameLayout.cs" />
+    <Compile Include="..\ADOFAIModManager.Windows\Services\GameService.cs" Link="Services\GameService.cs" />
+  </ItemGroup>
+</Project>
