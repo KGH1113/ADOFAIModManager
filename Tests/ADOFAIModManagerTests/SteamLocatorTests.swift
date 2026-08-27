@@ -237,6 +237,16 @@ import Testing
     #expect(!source.contains("perform(action: \"uninstallmod\""))
 }
 
+@Test func removedModBackupsNeverAppearInTheInstalledList() throws {
+    let source = try String(
+        contentsOf: packageRoot().appending(path: "Engine/src/ModManager.cs"),
+        encoding: .utf8
+    )
+
+    #expect(source.contains("AddFrom(result, layout.ModsPath, installed: true)"))
+    #expect(!source.contains("AddFrom(result, AppData.RemovedMods, installed: false)"))
+}
+
 @Test func dmgBackgroundUsesOneArrowShapeWithoutCaption() throws {
     let source = try String(
         contentsOf: packageRoot().appending(path: "scripts/generate-assets.swift"),
@@ -276,9 +286,50 @@ import Testing
     #expect(FileManager.default.fileExists(atPath: master.path))
 }
 
+@Test func macInstallerBundlesUnityMonoHarmonyBuild() throws {
+    let root = packageRoot()
+    let installer = try String(
+        contentsOf: root.appending(path: "Engine/src/Installer.cs"),
+        encoding: .utf8
+    )
+    let client = try String(
+        contentsOf: root.appending(path: "Sources/ADOFAIModManager/EngineClient.swift"),
+        encoding: .utf8
+    )
+    let buildScript = try String(
+        contentsOf: root.appending(path: "scripts/build-app.sh"),
+        encoding: .utf8
+    )
+
+    #expect(!installer.contains("ApplyHarmonyCompatibilityOverride"))
+    #expect(!client.contains("ADOFAI_HARMONY_OVERRIDE"))
+    #expect(installer.contains("reference.Version is { Major: >= 5 }"))
+    #expect(buildScript.contains("Resources/UMMPayload"))
+    #expect(buildScript.contains("Resources/UMMPayload/"))
+    #expect(buildScript.contains("lib/net48/0Harmony.dll"))
+    #expect(!buildScript.contains("find \"$nuget_root/lib.harmony"))
+    #expect(modelSource().contains("payloadDir: action == \"install\" ? bundledPayloadPath : nil"))
+}
+
+@Test func reinstallUsesTheRepairPayloadPath() throws {
+    let content = try String(
+        contentsOf: packageRoot().appending(path: "Sources/ADOFAIModManager/ContentView.swift"),
+        encoding: .utf8
+    )
+
+    #expect(content.contains("model.install(repair: model.isInstalled)"))
+}
+
 private func packageRoot() -> URL {
     URL(filePath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
+}
+
+private func modelSource() -> String {
+    (try? String(
+        contentsOf: packageRoot().appending(path: "Sources/ADOFAIModManager/AppModel.swift"),
+        encoding: .utf8
+    )) ?? ""
 }
