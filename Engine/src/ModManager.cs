@@ -36,11 +36,10 @@ internal static class ModManager
     {
         var result = new List<ModInfo>();
         AddFrom(result, layout.ModsPath, installed: true);
-        AddFrom(result, AppData.RemovedMods, installed: false);
         result.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
         var disabledIds = ReadDisabledIds(layout);
         for (var i = 0; i < result.Count; i++)
-            result[i] = result[i] with { Enabled = result[i].Installed && !disabledIds.Contains(result[i].Id) };
+            result[i] = result[i] with { Enabled = !disabledIds.Contains(result[i].Id) };
         ResolveRequirements(result, disabledIds);
         return result;
     }
@@ -53,13 +52,12 @@ internal static class ModManager
 
     /// Fills in each requirement's State now that the whole mod set is known.
     /// Mirrors the in-game manager's precedence: missing beats inactive beats
-    /// outdated. Here "inactive" covers both a mod the user disabled in-game and
-    /// one they uninstalled into the removed-mods backup — neither loads.
+    /// outdated. Removed-mod replacement backups are intentionally not listed.
     private static void ResolveRequirements(List<ModInfo> mods, HashSet<string> disabledIds)
     {
         var byId = new Dictionary<string, ModInfo>(StringComparer.OrdinalIgnoreCase);
         foreach (var mod in mods)
-            if (mod.Installed || !byId.ContainsKey(mod.Id))
+            if (!byId.ContainsKey(mod.Id))
                 byId[mod.Id] = mod;
 
         for (var i = 0; i < mods.Count; i++)
@@ -73,7 +71,7 @@ internal static class ModManager
                 string state;
                 if (!byId.TryGetValue(req.Id, out var found))
                     state = "Missing";
-                else if (!found.Installed || disabledIds.Contains(found.Id))
+                else if (disabledIds.Contains(found.Id))
                     state = "Inactive";
                 else if (req.Version is not null && CompareVersions(req.Version, found.Version) > 0)
                     state = "Outdated";
