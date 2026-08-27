@@ -31,6 +31,7 @@ public partial class App : Application
         _mainInstance = AppInstance.FindOrRegisterForKey("main");
         if (!_mainInstance.IsCurrent)
         {
+            WindowActivationService.BringProcessWindowToFront(_mainInstance.ProcessId);
             await _mainInstance.RedirectActivationToAsync(activation);
             Exit();
             return;
@@ -55,6 +56,8 @@ public partial class App : Application
         var file = fileArgs.Files.FirstOrDefault();
         if (file is null)
             return;
+        WindowActivationService.BringWindowToFront(MainWindowInstance);
         await MainWindowInstance.HandleModFileAsync(file.Path);
+        WindowActivationService.BringWindowToFront(MainWindowInstance);
     }
 }

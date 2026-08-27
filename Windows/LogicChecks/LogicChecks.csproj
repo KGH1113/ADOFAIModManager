@@ -18,5 +18,6 @@
     <Compile Include="..\ADOFAIModManager.Windows\Models\*.cs" Link="Models\%(Filename)%(Extension)" />
     <Compile Include="..\ADOFAIModManager.Windows\Services\*.cs" Link="Services\%(Filename)%(Extension)" />
     <Compile Include="..\ADOFAIModManager.Windows\ViewModels\*.cs" Link="ViewModels\%(Filename)%(Extension)" />
+    <Compile Include="..\ADOFAIModManager.Windows\App.xaml.cs" Link="App.xaml.cs" />
   </ItemGroup>
 </Project>
