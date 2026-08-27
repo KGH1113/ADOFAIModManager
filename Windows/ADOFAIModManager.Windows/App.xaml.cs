@@ -1,3 +1,4 @@
+using ADOFAIModManager.Windows.Infrastructure.Installation;
 using ADOFAIModManager.Windows.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
@@ -15,13 +16,13 @@ public partial class App : Application
 
     protected override async void OnLaunched(WinUILaunchActivatedEventArgs args)
     {
-        if (UserInstallService.HandleMaintenanceArguments())
+        if (UserInstallation.HandleMaintenanceArguments())
         {
             Exit();
             return;
         }
 
-        if (UserInstallService.InstallAndRelaunchIfNeeded())
+        if (UserInstallation.InstallAndRelaunchIfNeeded())
         {
             Exit();
             return;
@@ -37,11 +38,11 @@ public partial class App : Application
             return;
         }
 
-        MainWindowInstance = new MainWindow();
+        MainWindowInstance = new MainWindow(CompositionRoot.CreateMainViewModel());
         _mainInstance.Activated += (_, eventArgs) =>
             MainWindowInstance.DispatcherQueue.TryEnqueue(() => _ = HandleActivationAsync(eventArgs));
 
-        UserInstallService.RegisterFileAssociations();
+        FileAssociationRegistrar.Register();
         MainWindowInstance.Activate();
         await MainWindowInstance.InitializeAsync();
         await HandleActivationAsync(activation);

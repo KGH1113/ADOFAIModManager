@@ -6,14 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="dnlib" Version="4.5.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="..\..\Engine\src\Installer.cs" Link="Core\Installer.cs" />
-    <Compile Include="..\..\Engine\src\ModManager.cs" Link="Core\ModManager.cs" />
-    <Compile Include="..\ADOFAIModManager.Windows\Core\WindowsSupport.cs" Link="Core\WindowsSupport.cs" />
-    <Compile Include="..\ADOFAIModManager.Windows\Core\SteamLocator.cs" Link="Core\SteamLocator.cs" />
-    <Compile Include="..\ADOFAIModManager.Windows\Core\GameLayout.cs" Link="Core\GameLayout.cs" />
-    <Compile Include="..\ADOFAIModManager.Windows\Services\GameService.cs" Link="Services\GameService.cs" />
+    <ProjectReference Include="..\..\Engine\NativeUmm.Infrastructure\NativeUmm.Infrastructure.csproj" />
+    <Compile Include="..\ADOFAIModManager.Windows\Infrastructure\Steam\*.cs" Link="Infrastructure\Steam\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

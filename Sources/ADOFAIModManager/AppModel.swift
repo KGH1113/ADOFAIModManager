@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 @MainActor
@@ -20,13 +19,26 @@ final class AppModel: ObservableObject {
     @Published var ummLogExists = false
     @Published var isRefreshingUMMLog = false
 
-    private let engine = EngineClient()
+    private let engine: any EngineServing
+    private let gameLocator: any GameLocating
+    private let logReader: any LogReading
+    private let workspace: any WorkspaceOpening
     private let localization: LocalizationController
     private var queuedImportURL: URL?
     private var didStart = false
 
-    init(localization: LocalizationController) {
+    init(
+        localization: LocalizationController,
+        engine: any EngineServing,
+        gameLocator: any GameLocating,
+        logReader: any LogReading,
+        workspace: any WorkspaceOpening
+    ) {
         self.localization = localization
+        self.engine = engine
+        self.gameLocator = gameLocator
+        self.logReader = logReader
+        self.workspace = workspace
     }
 
     var status: InstallStatus? { response?.status }
@@ -41,7 +53,7 @@ final class AppModel: ObservableObject {
     func start() async {
         guard !didStart else { return }
         didStart = true
-        gameURL = SteamLocator.locate()
+        gameURL = gameLocator.locate()
         gameWasSelectedManually = false
         await refresh(includeMods: true)
         await inspectQueuedModIfPossible()
@@ -56,7 +68,7 @@ final class AppModel: ObservableObject {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        guard SteamLocator.validate(url) else {
+        guard gameLocator.validate(url) else {
             errorKey = "올바른 ADanceOfFireAndIce.app이 아닙니다."
             return
         }
@@ -139,7 +151,7 @@ final class AppModel: ObservableObject {
 
     func openModsFolder() {
         guard let path = status?.modsPath else { return }
-        NSWorkspace.shared.open(URL(filePath: path))
+        workspace.open(URL(filePath: path))
     }
 
     func refreshGameLog() async {
@@ -147,14 +159,15 @@ final class AppModel: ObservableObject {
         isRefreshingGameLog = true
         defer { isRefreshingGameLog = false }
         let url = GameLogConfiguration.playerLogURL
-        gameLogExists = FileManager.default.fileExists(atPath: url.path)
+        gameLogExists = logReader.exists(at: url)
         guard gameLogExists else {
             gameLogText = ""
             return
         }
         do {
+            let reader = logReader
             gameLogText = try await Task.detached {
-                try LogReader.tail(of: url, lineLimit: GameLogConfiguration.lineLimit)
+                try reader.tail(of: url, lineLimit: GameLogConfiguration.lineLimit)
             }.value
         } catch {
             gameLogText = ""
@@ -164,7 +177,7 @@ final class AppModel: ObservableObject {
     }
 
     func openGameLog() {
-        reveal(GameLogConfiguration.playerLogURL)
+        workspace.reveal(GameLogConfiguration.playerLogURL)
     }
 
     func refreshUMMLog() async {
@@ -184,12 +197,7 @@ final class AppModel: ObservableObject {
 
     func openUMMLog() {
         guard let managedPath = status?.managedPath else { return }
-        reveal(URL(filePath: managedPath).appending(path: "UnityModManager/Log.txt"))
-    }
-
-    private func reveal(_ url: URL) {
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([url])
+        workspace.reveal(URL(filePath: managedPath).appending(path: "UnityModManager/Log.txt"))
     }
 
     private func inspectQueuedModIfPossible() async {

@@ -8,16 +8,15 @@
     <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\ADOFAIModManager.Windows\Application\**\*.cs" Link="Application\%(RecursiveDir)%(Filename)%(Extension)" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
-    <PackageReference Include="dnlib" Version="4.5.0" />
+    <ProjectReference Include="..\..\Engine\NativeUmm.Infrastructure\NativeUmm.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\Engine\src\Installer.cs" Link="Core\Installer.cs" />
-    <Compile Include="..\..\Engine\src\ModManager.cs" Link="Core\ModManager.cs" />
-    <Compile Include="..\ADOFAIModManager.Windows\Core\*.cs" Link="Core\%(Filename)%(Extension)" />
     <Compile Include="..\ADOFAIModManager.Windows\Models\*.cs" Link="Models\%(Filename)%(Extension)" />
     <Compile Include="..\ADOFAIModManager.Windows\Services\*.cs" Link="Services\%(Filename)%(Extension)" />
     <Compile Include="..\ADOFAIModManager.Windows\ViewModels\*.cs" Link="ViewModels\%(Filename)%(Extension)" />
-    <Compile Include="..\ADOFAIModManager.Windows\App.xaml.cs" Link="App.xaml.cs" />
+    <Compile Include="..\ADOFAIModManager.Windows\Features\**\*.cs" Link="Features\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\ADOFAIModManager.Windows\Infrastructure\**\*.cs" Link="Infrastructure\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

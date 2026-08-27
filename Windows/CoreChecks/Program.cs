@@ -1,23 +1,30 @@
 using System.IO.Compression;
 using System.Text;
-using NativeUmm;
+using ADOFAIModManager.Windows.Infrastructure.Steam;
+using NativeUmm.Domain.Games;
+using NativeUmm.Domain.Installation;
+using NativeUmm.Infrastructure.Installation;
+using NativeUmm.Infrastructure.Logging;
+using NativeUmm.Infrastructure.Mods;
+using NativeUmm.Infrastructure.Storage;
 
-if (GameLayout.Detect(Path.Combine(Path.GetTempPath(), "adofai-does-not-exist")) is not null)
+var locator = new WindowsGameLocator();
+if (locator.Locate(Path.Combine(Path.GetTempPath(), "adofai-does-not-exist")) is not null)
     throw new InvalidOperationException("Invalid game directory was accepted.");
 
-if (Spec.EntryPoint.ToConfigString()
+if (UmmSpecification.EntryPoint.ToConfigString()
         != "[UnityEngine.CoreModule.dll]UnityEngine.MonoBehaviour.cctor:Before"
-    || Spec.StartingPoint.ToConfigString()
+    || UmmSpecification.StartingPoint.ToConfigString()
         != "[Assembly-CSharp.dll]ADOStartup.Startup:Before"
-    || Spec.UIStartingPoint.ToConfigString()
+    || UmmSpecification.UIStartingPoint.ToConfigString()
         != "[Assembly-CSharp.dll]ADOStartup.Startup:After")
     throw new InvalidOperationException("ADOFAI UMM startup points are incorrect.");
 
 var generatedConfig = Installer.BuildGameConfig().Root
     ?? throw new InvalidOperationException("Generated UMM config has no root element.");
-if (generatedConfig.Element("EntryPoint")?.Value != Spec.EntryPoint.ToConfigString()
-    || generatedConfig.Element("StartingPoint")?.Value != Spec.StartingPoint.ToConfigString()
-    || generatedConfig.Element("UIStartingPoint")?.Value != Spec.UIStartingPoint.ToConfigString())
+if (generatedConfig.Element("EntryPoint")?.Value != UmmSpecification.EntryPoint.ToConfigString()
+    || generatedConfig.Element("StartingPoint")?.Value != UmmSpecification.StartingPoint.ToConfigString()
+    || generatedConfig.Element("UIStartingPoint")?.Value != UmmSpecification.UIStartingPoint.ToConfigString())
     throw new InvalidOperationException("Generated UMM config does not use the ADOFAI startup points.");
 
 var testRoot = Path.Combine(Path.GetTempPath(), $"adofai-windows-core-checks-{Guid.NewGuid():N}");
@@ -26,9 +33,9 @@ try
     var managed = Path.Combine(testRoot, "A Dance of Fire and Ice_Data", "Managed");
     Directory.CreateDirectory(managed);
     File.WriteAllBytes(Path.Combine(testRoot, "A Dance of Fire and Ice.exe"), []);
-    File.WriteAllBytes(Path.Combine(managed, Spec.EntryPoint.AssemblyName), []);
+    File.WriteAllBytes(Path.Combine(managed, UmmSpecification.EntryPoint.AssemblyName), []);
     File.WriteAllBytes(Path.Combine(managed, "Assembly-CSharp.dll"), []);
-    var layout = GameLayout.Detect(testRoot)
+    var layout = locator.Locate(testRoot)
         ?? throw new InvalidOperationException("A valid test game directory was rejected.");
 
     var validZip = Path.Combine(testRoot, "valid.zip");
@@ -38,7 +45,9 @@ try
             "{\"Id\":\"ExampleMod\",\"DisplayName\":\"Example Mod\",\"Version\":\"1.0.0\"}");
         WriteEntry(archive, "ExampleMod/ExampleMod.dll", "test");
     }
-    var inspection = ModManager.Inspect(layout, validZip);
+    var log = new BufferedOperationLog();
+    var modService = new FileModService(log, new AppDataPaths(Path.Combine(testRoot, "app-data")));
+    var inspection = modService.Inspect(layout, validZip);
     if (inspection.Id != "ExampleMod" || inspection.DisplayName != "Example Mod")
         throw new InvalidOperationException("A valid mod archive was not inspected correctly.");
 
@@ -47,7 +56,7 @@ try
     {
         WriteEntry(archive, "../Info.json", "{\"Id\":\"Unsafe\"}");
     }
-    ExpectInvalidArchive(layout, traversalZip, "path traversal");
+    ExpectInvalidArchive(modService, layout, traversalZip, "path traversal");
 
     var ratioZip = Path.Combine(testRoot, "ratio.zip");
     using (var archive = ZipFile.Open(ratioZip, ZipArchiveMode.Create))
@@ -58,7 +67,7 @@ try
         for (var i = 0; i < 9; i++)
             stream.Write(zeros);
     }
-    ExpectInvalidArchive(layout, ratioZip, "unsafe compression ratio");
+    ExpectInvalidArchive(modService, layout, ratioZip, "unsafe compression ratio");
 
     Console.WriteLine("Windows core checks passed: UMM startup points, layout validation, mod inspection, and ZIP guards.");
 }
@@ -75,11 +84,11 @@ static void WriteEntry(ZipArchive archive, string name, string value)
     writer.Write(value);
 }
 
-static void ExpectInvalidArchive(GameLayout layout, string path, string scenario)
+static void ExpectInvalidArchive(FileModService modService, GameInstallation layout, string path, string scenario)
 {
     try
     {
-        _ = ModManager.Inspect(layout, path);
+        _ = modService.Inspect(layout, path);
         throw new InvalidOperationException($"The {scenario} archive was accepted.");
     }
     catch (InvalidOperationException ex) when (!ex.Message.Contains("was accepted", StringComparison.Ordinal))

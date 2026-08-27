@@ -9,21 +9,22 @@ namespace ADOFAIModManager.Windows;
 
 public sealed partial class MainWindow : Window
 {
-    internal MainViewModel ViewModel { get; } = new();
+    internal MainViewModel ViewModel { get; }
     private readonly InstallPage _installPage;
     private readonly ModsPage _modsPage;
     private readonly LogsPage _logsPage;
 
-    public MainWindow()
+    internal MainWindow(MainViewModel viewModel)
     {
+        ViewModel = viewModel;
         InitializeComponent();
         Root.DataContext = ViewModel;
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(TitleBar);
 
-        _installPage = new InstallPage(ViewModel);
-        _modsPage = new ModsPage(ViewModel);
-        _logsPage = new LogsPage(ViewModel);
+        _installPage = new InstallPage(ViewModel.Installation);
+        _modsPage = new ModsPage(ViewModel.Mods);
+        _logsPage = new LogsPage(ViewModel.Logs);
 
         var hwnd = WindowNative.GetWindowHandle(this);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
@@ -57,7 +58,7 @@ public sealed partial class MainWindow : Window
             _ => _installPage
         };
         if (tag == "logs")
-            _ = ViewModel.RefreshLogsAsync();
+            _ = ViewModel.Logs.RefreshLogsAsync();
     }
 
     private void ErrorInfoBar_CloseButtonClick(InfoBar sender, object args) => ViewModel.DismissError();

@@ -12,12 +12,12 @@ import Testing
     FileManager.default.createFile(atPath: core.path, contents: Data())
     defer { try? FileManager.default.removeItem(at: root.deletingLastPathComponent()) }
 
-    #expect(SteamLocator.validate(root))
+    #expect(MacSteamGameLocator.validate(root))
 }
 
 @Test func rejectsUnrelatedApplication() {
     let url = URL(filePath: "/Applications/NotADOFAI.app")
-    #expect(!SteamLocator.validate(url))
+    #expect(!MacSteamGameLocator.validate(url))
 }
 
 @Test func layoutUsesSharedEightPointSystem() {
@@ -41,13 +41,7 @@ import Testing
 }
 
 @Test func mainUIAvoidsInternalTerminology() throws {
-    let packageRoot = URL(filePath: #filePath)
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-    let contentView = packageRoot
-        .appending(path: "Sources/ADOFAIModManager/ContentView.swift")
-    let source = try String(contentsOf: contentView, encoding: .utf8)
+    let source = try uiSource()
 
     for forbidden in ["후크", "아키텍처", "설치 엔진", "CoreModule", "Managed"] {
         #expect(!source.contains(forbidden))
@@ -55,13 +49,7 @@ import Testing
 }
 
 @Test func contextualActionsAreNotPlacedInTheGlobalToolbar() throws {
-    let packageRoot = URL(filePath: #filePath)
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-    let contentView = packageRoot
-        .appending(path: "Sources/ADOFAIModManager/ContentView.swift")
-    let source = try String(contentsOf: contentView, encoding: .utf8)
+    let source = try uiSource()
 
     #expect(!source.contains(".toolbar {"))
     #expect(source.contains("게임 폴더 다시 선택"))
@@ -70,13 +58,7 @@ import Testing
 }
 
 @Test func workProgressAppearsInsideThePrimaryAction() throws {
-    let packageRoot = URL(filePath: #filePath)
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-    let contentView = packageRoot
-        .appending(path: "Sources/ADOFAIModManager/ContentView.swift")
-    let source = try String(contentsOf: contentView, encoding: .utf8)
+    let source = try uiSource()
 
     #expect(!source.contains(".overlay(alignment: .bottom)"))
     #expect(source.contains("ProgressView()"))
@@ -84,13 +66,7 @@ import Testing
 }
 
 @Test func installStatusDetailsUseOneGroupedLayout() throws {
-    let packageRoot = URL(filePath: #filePath)
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-    let contentView = packageRoot
-        .appending(path: "Sources/ADOFAIModManager/ContentView.swift")
-    let source = try String(contentsOf: contentView, encoding: .utf8)
+    let source = try uiSource()
 
     #expect(!source.contains("StatusRow("))
     #expect(source.contains("설치됨 · 버전"))
@@ -188,7 +164,7 @@ import Testing
     defer { try? FileManager.default.removeItem(at: url) }
     try (1...45).map(String.init).joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
 
-    let tail = try LogReader.tail(of: url, lineLimit: 30)
+    let tail = try FileLogReader().tail(of: url, lineLimit: 30)
     let lines = tail.split(separator: "\n")
     #expect(lines.count == 30)
     #expect(lines.first == "16")
@@ -197,7 +173,7 @@ import Testing
 
 @Test func appConnectsEveryModImportEntryPoint() throws {
     let sources = packageRoot().appending(path: "Sources/ADOFAIModManager")
-    let content = try String(contentsOf: sources.appending(path: "ContentView.swift"), encoding: .utf8)
+    let content = try uiSource()
     let app = try String(contentsOf: sources.appending(path: "ADOFAIModManagerApp.swift"), encoding: .utf8)
 
     #expect(content.contains(".dropDestination(for: URL.self)"))
@@ -217,10 +193,7 @@ import Testing
 }
 
 @Test func modRowsUseOneCompactStateControl() throws {
-    let source = try String(
-        contentsOf: packageRoot().appending(path: "Sources/ADOFAIModManager/ContentView.swift"),
-        encoding: .utf8
-    )
+    let source = try uiSource()
 
     #expect(source.contains(".toggleStyle(.checkbox)"))
     #expect(!source.contains(".toggleStyle(.switch)"))
@@ -239,7 +212,7 @@ import Testing
 
 @Test func removedModBackupsNeverAppearInTheInstalledList() throws {
     let source = try String(
-        contentsOf: packageRoot().appending(path: "Engine/src/ModManager.cs"),
+        contentsOf: packageRoot().appending(path: "Engine/NativeUmm.Infrastructure/Mods/ModManager.cs"),
         encoding: .utf8
     )
 
@@ -259,10 +232,7 @@ import Testing
 }
 
 @Test func modConfirmationPassesItsCapturedImportToInstallation() throws {
-    let content = try String(
-        contentsOf: packageRoot().appending(path: "Sources/ADOFAIModManager/ContentView.swift"),
-        encoding: .utf8
-    )
+    let content = try uiSource()
     let model = try String(
         contentsOf: packageRoot().appending(path: "Sources/ADOFAIModManager/AppModel.swift"),
         encoding: .utf8
@@ -288,12 +258,14 @@ import Testing
 
 @Test func macInstallerBundlesUnityMonoHarmonyBuild() throws {
     let root = packageRoot()
-    let installer = try String(
-        contentsOf: root.appending(path: "Engine/src/Installer.cs"),
-        encoding: .utf8
-    )
+    let installer = try ["Installer.cs", "PayloadResolver.cs"].map {
+        try String(
+            contentsOf: root.appending(path: "Engine/NativeUmm.Infrastructure/Installation/\($0)"),
+            encoding: .utf8
+        )
+    }.joined(separator: "\n")
     let client = try String(
-        contentsOf: root.appending(path: "Sources/ADOFAIModManager/EngineClient.swift"),
+        contentsOf: root.appending(path: "Sources/ADOFAIModManager/Infrastructure/Engine/ProcessEngineClient.swift"),
         encoding: .utf8
     )
     let buildScript = try String(
@@ -312,10 +284,7 @@ import Testing
 }
 
 @Test func reinstallUsesTheRepairPayloadPath() throws {
-    let content = try String(
-        contentsOf: packageRoot().appending(path: "Sources/ADOFAIModManager/ContentView.swift"),
-        encoding: .utf8
-    )
+    let content = try uiSource()
 
     #expect(content.contains("model.install(repair: model.isInstalled)"))
 }
@@ -332,4 +301,16 @@ private func modelSource() -> String {
         contentsOf: packageRoot().appending(path: "Sources/ADOFAIModManager/AppModel.swift"),
         encoding: .utf8
     )) ?? ""
+}
+
+private func uiSource() throws -> String {
+    let sourceRoot = packageRoot().appending(path: "Sources/ADOFAIModManager")
+    return try [
+        "UI/ContentView.swift",
+        "Features/Installation/InstallationView.swift",
+        "Features/Mods/ModsView.swift",
+        "Features/Logs/LogsView.swift"
+    ].map {
+        try String(contentsOf: sourceRoot.appending(path: $0), encoding: .utf8)
+    }.joined(separator: "\n")
 }

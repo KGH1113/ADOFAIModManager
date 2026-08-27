@@ -1,6 +1,5 @@
 using ADOFAIModManager.Windows.Models;
-using ADOFAIModManager.Windows.Services;
-using ADOFAIModManager.Windows.ViewModels;
+using ADOFAIModManager.Windows.Features.Mods;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -13,8 +12,8 @@ namespace ADOFAIModManager.Windows.Views;
 
 public sealed partial class ModsPage : Page
 {
-    private MainViewModel ViewModel => (MainViewModel)DataContext;
-    internal ModsPage(MainViewModel viewModel)
+    private ModsViewModel ViewModel => (ModsViewModel)DataContext;
+    internal ModsPage(ModsViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;
@@ -68,7 +67,7 @@ public sealed partial class ModsPage : Page
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await ViewModel.RefreshAsync();
-    private void OpenFolder_Click(object sender, RoutedEventArgs e) => ShellService.OpenFolder(ViewModel.ModsDirectory);
+    private void OpenFolder_Click(object sender, RoutedEventArgs e) => ViewModel.OpenModsFolder();
 
     private void Page_DragOver(object sender, DragEventArgs e)
     {

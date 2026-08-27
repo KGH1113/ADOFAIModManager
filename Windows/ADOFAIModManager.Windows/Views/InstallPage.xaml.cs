@@ -1,4 +1,4 @@
-using ADOFAIModManager.Windows.ViewModels;
+using ADOFAIModManager.Windows.Features.Installation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Storage.Pickers;
@@ -8,9 +8,9 @@ namespace ADOFAIModManager.Windows.Views;
 
 public sealed partial class InstallPage : Page
 {
-    private MainViewModel ViewModel => (MainViewModel)DataContext;
+    private InstallationViewModel ViewModel => (InstallationViewModel)DataContext;
 
-    internal InstallPage(MainViewModel viewModel)
+    internal InstallPage(InstallationViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;

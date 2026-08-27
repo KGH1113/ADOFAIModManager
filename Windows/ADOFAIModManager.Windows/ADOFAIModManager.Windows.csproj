@@ -23,8 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\Engine\src\Installer.cs" Link="Core\Installer.cs" />
-    <Compile Include="..\..\Engine\src\ModManager.cs" Link="Core\ModManager.cs" />
+    <ProjectReference Include="..\..\Engine\NativeUmm.Infrastructure\NativeUmm.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

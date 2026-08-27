@@ -2,6 +2,7 @@
 set -euo pipefail
 
 project_root="${0:A:h:h}"
+engine_project="$project_root/Engine/NativeUmm.Cli/NativeUmm.Cli.csproj"
 build_root="$project_root/build"
 app="$build_root/ADOFAI Mod Manager.app"
 contents="$app/Contents"
@@ -13,9 +14,9 @@ mkdir -p "$contents/MacOS" "$contents/Helpers" "$contents/Resources/UMMPayload" 
 swift "$project_root/scripts/generate-assets.swift" "$assets"
 cp "$assets/AppIcon.icns" "$contents/Resources/AppIcon.icns"
 
-dotnet restore "$project_root/Engine/UMMInstallerEngine.csproj"
-dotnet publish "$project_root/Engine/UMMInstallerEngine.csproj" -c Release -r osx-arm64 -o "$build_root/engine-arm64"
-dotnet publish "$project_root/Engine/UMMInstallerEngine.csproj" -c Release -r osx-x64 -o "$build_root/engine-x64"
+dotnet restore "$engine_project"
+dotnet publish "$engine_project" -c Release -r osx-arm64 -o "$build_root/engine-arm64"
+dotnet publish "$engine_project" -c Release -r osx-x64 -o "$build_root/engine-x64"
 lipo -create "$build_root/engine-arm64/UMMInstallerEngine" "$build_root/engine-x64/UMMInstallerEngine" -output "$contents/Helpers/UMMInstallerEngine"
 chmod 755 "$contents/Helpers/UMMInstallerEngine"
 

@@ -4,17 +4,28 @@ import SwiftUI
 struct ADOFAIModManagerApp: App {
     @StateObject private var localization: LocalizationController
     @StateObject private var model: AppModel
+    @StateObject private var installationViewModel: InstallationViewModel
+    @StateObject private var modsViewModel: ModsViewModel
+    @StateObject private var logsViewModel: LogsViewModel
 
     init() {
         let localization = LocalizationController()
+        let container = AppContainer.live()
+        let model = container.makeAppModel(localization: localization)
         _localization = StateObject(wrappedValue: localization)
-        _model = StateObject(wrappedValue: AppModel(localization: localization))
+        _model = StateObject(wrappedValue: model)
+        _installationViewModel = StateObject(wrappedValue: InstallationViewModel(app: model))
+        _modsViewModel = StateObject(wrappedValue: ModsViewModel(app: model))
+        _logsViewModel = StateObject(wrappedValue: LogsViewModel(app: model))
     }
 
     var body: some Scene {
         Window("ADOFAI Mod Manager", id: "main") {
             ContentView()
-                .environmentObject(model)
+            .environmentObject(model)
+            .environmentObject(installationViewModel)
+            .environmentObject(modsViewModel)
+            .environmentObject(logsViewModel)
                 .environmentObject(localization)
                 .environment(\.locale, localization.locale)
                 .task { await model.start() }
