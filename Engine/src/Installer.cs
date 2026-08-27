@@ -68,7 +68,6 @@ internal sealed class Installer(GameLayout layout)
 
         var payload = await PayloadResolver.ResolveAsync(layout, payloadDir, forceDownload: forcePayload);
         CopyPayload(payload, forcePayload);
-        ApplyHarmonyCompatibilityOverride();
         WriteGameConfig();
         PatchEntryAssembly();
         Log.Info("Install / repair complete.");
@@ -167,45 +166,6 @@ internal sealed class Installer(GameLayout layout)
 
             File.Copy(source, dest, overwrite: true);
             Log.Info($"Copied {name}");
-        }
-    }
-
-    private void ApplyHarmonyCompatibilityOverride()
-    {
-        var overridePath = Environment.GetEnvironmentVariable("ADOFAI_HARMONY_OVERRIDE");
-        if (string.IsNullOrWhiteSpace(overridePath) || !File.Exists(overridePath))
-            return;
-
-        var destination = Path.Combine(layout.ManagerPath, "0Harmony.dll");
-        var installedVersion = ReadAssemblyVersion(destination);
-        var overrideVersion = ReadAssemblyVersion(overridePath);
-        if (overrideVersion is null || overrideVersion < new Version(2, 4))
-            throw new InvalidDataException("Bundled Harmony compatibility override is not version 2.4 or newer.");
-
-        if (installedVersion is not null && installedVersion >= new Version(2, 4))
-        {
-            Log.Info($"Keeping Harmony {installedVersion}; compatibility override is not needed.");
-            return;
-        }
-
-        if (File.Exists(destination))
-            BackupTimestamped(destination);
-        File.Copy(overridePath, destination, overwrite: true);
-        Log.Info($"Applied Harmony {overrideVersion} compatibility override.");
-    }
-
-    private static Version? ReadAssemblyVersion(string path)
-    {
-        if (!File.Exists(path))
-            return null;
-        try
-        {
-            using var module = ModuleDefMD.Load(File.ReadAllBytes(path));
-            return module.Assembly?.Version;
-        }
-        catch
-        {
-            return null;
         }
     }
 
@@ -624,13 +584,14 @@ internal sealed class PayloadResolver
                     continue;
 
                 var direct = Path.Combine(dir, name);
-                if (File.Exists(direct))
+                if (File.Exists(direct) && IsCompatiblePayloadFile(name, direct))
                 {
                     files[name] = direct;
                     continue;
                 }
 
-                var nested = Directory.EnumerateFiles(dir, name, SearchOption.AllDirectories).FirstOrDefault();
+                var nested = Directory.EnumerateFiles(dir, name, SearchOption.AllDirectories)
+                    .FirstOrDefault(path => IsCompatiblePayloadFile(name, path));
                 if (nested is not null)
                     files[name] = nested;
             }
@@ -641,6 +602,24 @@ internal sealed class PayloadResolver
                files.ContainsKey("dnlib.dll")
             ? new Payload(files, isBundled)
             : null;
+    }
+
+    private static bool IsCompatiblePayloadFile(string name, string path)
+    {
+        if (!name.Equals("0Harmony.dll", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        try
+        {
+            using var module = ModuleDefMD.Load(File.ReadAllBytes(path));
+            return !module.GetAssemblyRefs().Any(reference =>
+                reference.Name.String.Equals("System.Runtime", StringComparison.OrdinalIgnoreCase)
+                && reference.Version is { Major: >= 5 });
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static string CachePayloadPath => Path.Combine(AppData.Cache, "payload");
@@ -657,10 +636,14 @@ internal sealed class PayloadResolver
         await File.WriteAllBytesAsync(zipPath, bytes);
 
         using var zip = ZipFile.OpenRead(zipPath);
-        foreach (var entry in zip.Entries)
+        foreach (var name in Spec.PayloadFiles)
         {
-            var name = Path.GetFileName(entry.FullName);
-            if (!Spec.PayloadFiles.Contains(name, StringComparer.OrdinalIgnoreCase) || string.IsNullOrEmpty(name))
+            var entry = zip.Entries
+                .Where(candidate => Path.GetFileName(candidate.FullName)
+                    .Equals(name, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(candidate => PayloadEntryPriority(candidate.FullName, name))
+                .FirstOrDefault(candidate => IsCompatibleArchivePayload(name, candidate));
+            if (entry is null)
                 continue;
 
             entry.ExtractToFile(Path.Combine(CachePayloadPath, name), overwrite: true);
@@ -669,5 +652,32 @@ internal sealed class PayloadResolver
         var stamp = Convert.ToHexString(SHA256.HashData(bytes))[..16];
         await File.WriteAllTextAsync(Path.Combine(CachePayloadPath, "payload.sha256.txt"), stamp);
         return CachePayloadPath;
+    }
+
+    private static int PayloadEntryPriority(string fullName, string fileName)
+    {
+        var normalized = fullName.Replace('\\', '/').TrimStart('/');
+        if (normalized.Equals(fileName, StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals($"UnityModManagerInstaller/{fileName}", StringComparison.OrdinalIgnoreCase))
+            return 0;
+        return 10 + normalized.Count(character => character == '/');
+    }
+
+    private static bool IsCompatibleArchivePayload(string name, ZipArchiveEntry entry)
+    {
+        if (!name.Equals("0Harmony.dll", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var temporaryPath = Path.Combine(Path.GetTempPath(), $"adofai-harmony-{Guid.NewGuid():N}.dll");
+        try
+        {
+            entry.ExtractToFile(temporaryPath);
+            return IsCompatiblePayloadFile(name, temporaryPath);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
     }
 }

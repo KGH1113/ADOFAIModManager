@@ -184,7 +184,7 @@ private struct InstallView: View {
     private var actions: some View {
         HStack(spacing: LayoutMetrics.rowSpacing) {
             Button {
-                Task { await model.install() }
+                Task { await model.install(repair: model.isInstalled) }
             } label: {
                 HStack(spacing: LayoutMetrics.compact) {
                     if model.isWorking {

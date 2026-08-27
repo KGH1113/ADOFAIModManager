@@ -247,7 +247,7 @@ final class AppModel: ObservableObject {
             let request = EngineRequest(
                 action: action,
                 gamePath: gameURL.path,
-                payloadDir: nil,
+                payloadDir: action == "install" ? bundledPayloadPath : nil,
                 zipPath: zipPath,
                 path: path,
                 modId: modId,
@@ -273,6 +273,11 @@ final class AppModel: ObservableObject {
             logs.append(.init(level: "error", message: diagnostic))
             return false
         }
+    }
+
+    private var bundledPayloadPath: String? {
+        let url = Bundle.main.bundleURL.appending(path: "Contents/Resources/UMMPayload")
+        return FileManager.default.fileExists(atPath: url.path) ? url.path : nil
     }
 
     private func friendlyFailureKey(for action: String) -> String {

@@ -40,13 +40,7 @@ struct EngineClient: Sendable {
             process.standardInput = input
             process.standardOutput = output
             process.standardError = errors
-            var environment = ProcessInfo.processInfo.environment
-            let harmony = Bundle.main.bundleURL
-                .appending(path: "Contents/Resources/Harmony/0Harmony.dll")
-            if FileManager.default.fileExists(atPath: harmony.path) {
-                environment["ADOFAI_HARMONY_OVERRIDE"] = harmony.path
-            }
-            process.environment = environment
+            process.environment = ProcessInfo.processInfo.environment
 
             do {
                 try process.run()

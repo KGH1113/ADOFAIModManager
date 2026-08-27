@@ -7,8 +7,8 @@ app="$build_root/ADOFAI Mod Manager.app"
 contents="$app/Contents"
 assets="$build_root/generated-assets"
 
-rm -rf "$build_root"
-mkdir -p "$contents/MacOS" "$contents/Helpers" "$contents/Resources/Harmony" "$contents/Resources/ThirdPartyNotices"
+rm -rf "$app" "$assets" "$build_root/engine-arm64" "$build_root/engine-x64"
+mkdir -p "$contents/MacOS" "$contents/Helpers" "$contents/Resources/UMMPayload" "$contents/Resources/ThirdPartyNotices"
 
 swift "$project_root/scripts/generate-assets.swift" "$assets"
 cp "$assets/AppIcon.icns" "$contents/Resources/AppIcon.icns"
@@ -25,14 +25,17 @@ cp "$swift_bin/ADOFAIModManager" "$contents/MacOS/ADOFAIModManager"
 cp -R "$swift_bin/ADOFAIModManager_ADOFAIModManager.bundle" "$contents/Resources/"
 cp "$project_root/Resources/Info.plist" "$contents/Info.plist"
 cp -R "$project_root/Resources/ThirdPartyNotices/." "$contents/Resources/ThirdPartyNotices/"
+cp "$project_root/Resources/UMMPayload/"* "$contents/Resources/UMMPayload/"
 
+# Harmony 2.4 adds ARM support, but its NuGet package contains builds for many
+# runtimes. Unity Mono needs the mscorlib/net48 build, never the net5.0 build.
 nuget_root="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
-harmony="$(find "$nuget_root/lib.harmony/2.4.2" -type f -name 0Harmony.dll | head -1)"
-if [[ -z "$harmony" ]]; then
-    print -u2 "Harmony 2.4.2 was not restored."
+harmony="$nuget_root/lib.harmony/2.4.2/lib/net48/0Harmony.dll"
+if [[ ! -f "$harmony" ]]; then
+    print -u2 "Harmony 2.4.2 net48 payload was not restored."
     exit 1
 fi
-cp "$harmony" "$contents/Resources/Harmony/0Harmony.dll"
+cp "$harmony" "$contents/Resources/UMMPayload/0Harmony.dll"
 
 codesign --force --sign - --options runtime "$contents/Helpers/UMMInstallerEngine"
 codesign --force --sign - --options runtime "$app"

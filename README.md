@@ -12,8 +12,9 @@ UMM과 모드 관리, ZIP 연결 프로그램, 로그, 사용자 단위 설치�
 
 - Steam 라이브러리에서 ADOFAI 자동 탐색 및 수동 앱 선택
 - UMM Assembly 방식 설치, 복구 설치, 후크 제거, 원본 복원
-- 최신 ADOFAI용 UMM 패키지 다운로드
-- Harmony가 2.4 미만이면 빌드에 포함한 2.4.2로 교체
+- 새 Mac에서도 바로 설치할 수 있도록 UMM 0.32.5 호환 payload 포함
+- ARM을 지원하는 Harmony 2.4.2의 Unity Mono용 net48 빌드 사용
+- `System.Runtime 5+`를 참조하는 잘못된 Harmony payload는 자동 제외
 - 모드 ZIP 검사 및 안전한 설치, 교체 전 기존 모드 자동 보관
 - 앱 창 전체 드래그 앤 드롭과 Finder `다음으로 열기` 지원
 - 모드 켜기/끄기, 복구 가능한 제거, Mods 폴더 열기
@@ -53,10 +54,10 @@ Developer ID 없이 배포한 빌드는 처음 실행할 때 macOS가 차단합�
 
 설치 엔진은 `UnityEngine.CoreModule.dll`을 교체하기 전에 타임스탬프
 백업을 만들며, UMM이 사용하는 `.original_` 원본도 유지합니다. 모드
-제거는 즉시 삭제하지 않고 Application Support 아래 복구 폴더로 이동합니다.
+사용자가 휴지통 버튼으로 제거한 모드는 즉시 영구 삭제합니다.
 외부 ZIP은 설치 전에 `Info.json`, 파일 수, 압축 해제 용량, 심볼릭 링크와
 경로 이탈 여부를 확인합니다. 기존 모드를 교체할 때도 이전 폴더를 복구
-폴더로 옮긴 다음 새 모드를 배치합니다.
+폴더로 옮긴 다음 새 모드를 배치하지만, 이 교체 백업은 모드 목록에 표시하지 않습니다.
 
 이 프로젝트는 Unity Mod Manager 및 7th Beat Games의 공식 제품이 아닌
 커뮤니티 도구입니다. 포팅한 Unity Mod Manager 코어와 제3자 라이선스는
