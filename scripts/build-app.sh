@@ -28,15 +28,18 @@ cp "$project_root/Resources/Info.plist" "$contents/Info.plist"
 cp -R "$project_root/Resources/ThirdPartyNotices/." "$contents/Resources/ThirdPartyNotices/"
 cp "$project_root/Resources/UMMPayload/"* "$contents/Resources/UMMPayload/"
 
-# Harmony 2.4 adds ARM support, but its NuGet package contains builds for many
-# runtimes. Unity Mono needs the mscorlib/net48 build, never the net5.0 build.
-nuget_root="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
-harmony="$nuget_root/lib.harmony/2.4.2/lib/net48/0Harmony.dll"
-if [[ ! -f "$harmony" ]]; then
-    print -u2 "Harmony 2.4.2 net48 payload was not restored."
+# This is Harmony 2.3.6 with MonoMod.Core 1.3.3 merged into the net48 build.
+# It preserves the internal 2.3.6 ABI used by JALib while providing the ARM64
+# detour backend required by native Apple Silicon Unity Mono.
+harmony="$contents/Resources/UMMPayload/0Harmony.dll"
+has_harmony_marker() { strings "$harmony" | grep "$1" >/dev/null }
+if ! has_harmony_marker 'MonoMod.Core, Version=1.3.3.0' \
+    || ! has_harmony_marker 'MethodPatcher' \
+    || ! has_harmony_marker 'Arm64Arch' \
+    || ! has_harmony_marker 'exhelper_macos_arm64.dylib'; then
+    print -u2 "The bundled Harmony payload is not the 2.3.6 ABI-compatible ARM64 build."
     exit 1
 fi
-cp "$harmony" "$contents/Resources/UMMPayload/0Harmony.dll"
 
 codesign --force --sign - --options runtime "$contents/Helpers/UMMInstallerEngine"
 codesign --force --sign - --options runtime "$app"

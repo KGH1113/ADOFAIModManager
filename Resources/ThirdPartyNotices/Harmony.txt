@@ -1,3 +1,7 @@
 Harmony is distributed under the MIT License.
 Copyright (c) 2017 Andreas Pardeike.
 Source: https://github.com/pardeike/Harmony
+
+The bundled 0Harmony.dll is built from Harmony v2.3.6.0 with
+MonoMod.Core 1.3.3 to retain the Harmony 2.3.6 ABI while adding the
+native ARM64 detour backend.

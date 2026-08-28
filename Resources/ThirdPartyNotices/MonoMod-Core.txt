@@ -1,0 +1,7 @@
+MonoMod.Core is distributed under the MIT License.
+Copyright 2025 0x0ade, DaNike.
+Source: https://github.com/MonoMod/MonoMod
+
+The bundled Harmony compatibility payload incorporates MonoMod.Core 1.3.3
+and its transitive components, including MonoMod.Iced. The upstream package
+contains the applicable license notices.

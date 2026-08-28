@@ -13,7 +13,7 @@ UMM과 모드 관리, ZIP 연결 프로그램, 로그, 사용자 단위 설치�
 - Steam 라이브러리에서 ADOFAI 자동 탐색 및 수동 앱 선택
 - UMM Assembly 방식 설치, 복구 설치, 후크 제거, 원본 복원
 - 새 Mac에서도 바로 설치할 수 있도록 UMM 0.32.5 호환 payload 포함
-- ARM을 지원하는 Harmony 2.4.2의 Unity Mono용 net48 빌드 사용
+- Harmony 2.3.6 ABI와 JALib 호환성을 유지하면서 MonoMod.Core 1.3.3의 Apple Silicon ARM64 detour를 사용하는 net48 빌드 포함
 - `System.Runtime 5+`를 참조하는 잘못된 Harmony payload는 자동 제외
 - 모드 ZIP 검사 및 안전한 설치, 교체 전 기존 모드 자동 보관
 - 앱 창 전체 드래그 앤 드롭과 Finder `다음으로 열기` 지원
@@ -33,6 +33,11 @@ UMM과 모드 관리, ZIP 연결 프로그램, 로그, 사용자 단위 설치�
 ./scripts/build-dmg.sh
 ./scripts/test-engine.sh
 ```
+
+번들된 `0Harmony.dll`을 재생성하려면 네트워크 연결이 가능한 개발 환경에서
+`./scripts/build-harmony-compat.sh`를 실행합니다. 이 스크립트는 Harmony
+`v2.3.6.0` 소스를 고정해 빌드하되 MonoMod.Core만 `1.3.3`으로 올립니다.
+어셈블리 버전은 구형 모드 호환성을 위해 `2.3.6.0`으로 유지됩니다.
 
 결과물:
 

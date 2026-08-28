@@ -32,9 +32,19 @@ response="$(printf '%s' "$request" | "$helper")"
 [[ "$response" == *'"ok":true'* ]]
 [[ "$response" == *'"hookInstalled":true'* ]]
 cmp "$payload/0Harmony.dll" "$managed/UnityModManager/0Harmony.dll"
-if strings "$managed/UnityModManager/0Harmony.dll" | grep -q 'System.Runtime, Version=5'; then
+if strings "$managed/UnityModManager/0Harmony.dll" | grep 'System.Runtime, Version=5' >/dev/null; then
     print -u2 "The installed Harmony payload targets .NET 5 instead of Unity Mono."
     exit 1
 fi
+for marker in \
+    'MethodPatcher' \
+    'MonoMod.Core, Version=1.3.3.0' \
+    'Arm64Arch' \
+    'exhelper_macos_arm64.dylib'; do
+    if ! strings "$managed/UnityModManager/0Harmony.dll" | grep "$marker" >/dev/null; then
+        print -u2 "The installed Harmony payload is missing compatibility marker: $marker"
+        exit 1
+    fi
+done
 
-print "Full UMM install test passed with the bundled Unity Mono Harmony payload."
+print "Full UMM install test passed with the Harmony 2.3.6 ARM64 compatibility payload."

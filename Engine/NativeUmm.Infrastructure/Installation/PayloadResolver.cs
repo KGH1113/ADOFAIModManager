@@ -9,6 +9,8 @@ namespace NativeUmm.Infrastructure.Installation;
 
 internal static class PayloadResolver
 {
+    private static readonly Version CompatibleHarmonyVersion = new(2, 3, 6, 0);
+
     public static async Task<Payload> ResolveAsync(
         GameInstallation installation,
         string? bundledPayloadDirectory,
@@ -73,9 +75,14 @@ internal static class PayloadResolver
         try
         {
             using var module = ModuleDefMD.Load(File.ReadAllBytes(path));
-            return !module.GetAssemblyRefs().Any(reference =>
+            var usesUnsupportedRuntime = module.GetAssemblyRefs().Any(reference =>
                 reference.Name.String.Equals("System.Runtime", StringComparison.OrdinalIgnoreCase)
                 && reference.Version is { Major: >= 5 });
+            return !usesUnsupportedRuntime
+                   && module.Assembly?.Version == CompatibleHarmonyVersion
+                   && module.Find("HarmonyLib.MethodPatcher", isReflectionName: false) is not null
+                   && module.Find("MonoMod.Core.Platforms.Architectures.Arm64Arch", isReflectionName: false) is not null
+                   && module.Find("MonoMod.Core.Platforms.Systems.MacOSSystem", isReflectionName: false) is not null;
         }
         catch { return false; }
     }

@@ -256,7 +256,7 @@ import Testing
     #expect(FileManager.default.fileExists(atPath: master.path))
 }
 
-@Test func macInstallerBundlesUnityMonoHarmonyBuild() throws {
+@Test func macInstallerBundlesAbiCompatibleArm64HarmonyBuild() throws {
     let root = packageRoot()
     let installer = try ["Installer.cs", "PayloadResolver.cs"].map {
         try String(
@@ -272,14 +272,32 @@ import Testing
         contentsOf: root.appending(path: "scripts/build-app.sh"),
         encoding: .utf8
     )
+    let harmony = try Data(
+        contentsOf: root.appending(path: "Resources/UMMPayload/0Harmony.dll")
+    )
 
     #expect(!installer.contains("ApplyHarmonyCompatibilityOverride"))
     #expect(!client.contains("ADOFAI_HARMONY_OVERRIDE"))
     #expect(installer.contains("reference.Version is { Major: >= 5 }"))
+    #expect(installer.contains("new(2, 3, 6, 0)"))
+    #expect(installer.contains("HarmonyLib.MethodPatcher"))
+    #expect(installer.contains("MonoMod.Core.Platforms.Architectures.Arm64Arch"))
     #expect(buildScript.contains("Resources/UMMPayload"))
     #expect(buildScript.contains("Resources/UMMPayload/"))
-    #expect(buildScript.contains("lib/net48/0Harmony.dll"))
-    #expect(!buildScript.contains("find \"$nuget_root/lib.harmony"))
+    #expect(buildScript.contains("MonoMod.Core, Version=1.3.3.0"))
+    #expect(buildScript.contains("MethodPatcher"))
+    #expect(buildScript.contains("Arm64Arch"))
+    #expect(buildScript.contains("exhelper_macos_arm64.dylib"))
+    #expect(!buildScript.contains("lib.harmony/2.4.2"))
+    for marker in [
+        "2.3.6.0",
+        "MethodPatcher",
+        "MonoMod.Core, Version=1.3.3.0",
+        "Arm64Arch",
+        "exhelper_macos_arm64.dylib",
+    ] {
+        #expect(harmony.range(of: Data(marker.utf8)) != nil)
+    }
     #expect(modelSource().contains("payloadDir: action == \"install\" ? bundledPayloadPath : nil"))
 }
 

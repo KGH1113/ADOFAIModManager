@@ -17,6 +17,5 @@
   <ItemGroup>
     <ProjectReference Include="..\NativeUmm.Infrastructure\NativeUmm.Infrastructure.csproj" />
     <PackageReference Include="dnlib" Version="4.5.0" />
-    <PackageDownload Include="Lib.Harmony" Version="[2.4.2]" />
   </ItemGroup>
 </Project>
