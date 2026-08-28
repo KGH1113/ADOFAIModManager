@@ -72,7 +72,9 @@ try writePNG(icon, named: "AppIcon-1024.png")
 try writeICNS(icon, named: "AppIcon.icns")
 
 let background = NSImage(size: NSSize(width: 660, height: 400), flipped: false) { rect in
-    NSColor(calibratedWhite: 0.965, alpha: 1).setFill()
+    let backgroundColor = NSColor(calibratedRed: 0.64, green: 0.68, blue: 0.78, alpha: 1)
+    let arrowColor = NSColor(calibratedRed: 0.25, green: 0.29, blue: 0.43, alpha: 1)
+    backgroundColor.setFill()
     rect.fill()
 
     // Draw the arrow as one filled shape so translucent strokes never overlap
@@ -86,7 +88,7 @@ let background = NSImage(size: NSSize(width: 660, height: 400), flipped: false) 
     arrow.line(to: NSPoint(x: 358, y: 211))
     arrow.line(to: NSPoint(x: 278, y: 211))
     arrow.close()
-    NSColor(calibratedWhite: 0.48, alpha: 0.72).setFill()
+    arrowColor.setFill()
     arrow.fill()
     return true
 }
