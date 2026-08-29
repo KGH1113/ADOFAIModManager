@@ -25,6 +25,7 @@ final class AppModel: ObservableObject {
     private let workspace: any WorkspaceOpening
     private let localization: LocalizationController
     private var queuedImportURL: URL?
+    private var queuedImportDeleteWhenFinished = false
     private var didStart = false
 
     init(
@@ -53,6 +54,7 @@ final class AppModel: ObservableObject {
     func start() async {
         guard !didStart else { return }
         didStart = true
+        CatalogDownloadStorage.cleanupAll()
         gameURL = gameLocator.locate()
         gameWasSelectedManually = false
         await refresh(includeMods: true)
@@ -111,17 +113,34 @@ final class AppModel: ObservableObject {
     }
 
     func offerModFile(_ url: URL) {
+        queueModFile(url, deleteWhenFinished: false)
+    }
+
+    func offerDownloadedModFile(_ url: URL) {
+        queueModFile(url, deleteWhenFinished: true)
+    }
+
+    private func queueModFile(_ url: URL, deleteWhenFinished: Bool) {
         guard url.isFileURL, url.pathExtension.caseInsensitiveCompare("zip") == .orderedSame else {
             errorKey = "ZIP 형식의 UMM 모드를 선택해 주세요."
             return
         }
+        if queuedImportDeleteWhenFinished, let queuedImportURL {
+            CatalogDownloadStorage.remove(queuedImportURL)
+        }
         selection = .mods
         queuedImportURL = url
+        queuedImportDeleteWhenFinished = deleteWhenFinished
         Task { await inspectQueuedModIfPossible() }
     }
 
     func confirmModInstall(_ pending: PendingModImport) async {
         pendingModImport = nil
+        defer {
+            if pending.deleteWhenFinished {
+                CatalogDownloadStorage.remove(pending.url)
+            }
+        }
         let installed = await perform(
             action: "installmod",
             zipPath: pending.url.path,
@@ -131,7 +150,15 @@ final class AppModel: ObservableObject {
     }
 
     func cancelModInstall() {
+        if let pendingModImport, pendingModImport.deleteWhenFinished {
+            CatalogDownloadStorage.remove(pendingModImport.url)
+        }
         pendingModImport = nil
+    }
+
+    func openWebsite(_ url: URL) {
+        guard url.scheme?.lowercased() == "https" else { return }
+        workspace.open(url)
     }
 
     func removeMod(_ mod: InstalledMod) async {
@@ -207,6 +234,8 @@ final class AppModel: ObservableObject {
             return
         }
         queuedImportURL = nil
+        let deleteWhenFinished = queuedImportDeleteWhenFinished
+        queuedImportDeleteWhenFinished = false
         isInspectingMod = true
         defer { isInspectingMod = false }
         do {
@@ -221,11 +250,17 @@ final class AppModel: ObservableObject {
                     logs.append(.init(level: "error", message: diagnostic))
                 }
                 errorKey = "이 파일은 설치할 수 있는 UMM 모드가 아닙니다."
+                if deleteWhenFinished { CatalogDownloadStorage.remove(url) }
                 return
             }
-            pendingModImport = PendingModImport(url: url, inspection: inspection)
+            pendingModImport = PendingModImport(
+                url: url,
+                inspection: inspection,
+                deleteWhenFinished: deleteWhenFinished
+            )
         } catch {
             errorKey = "이 파일은 설치할 수 있는 UMM 모드가 아닙니다."
+            if deleteWhenFinished { CatalogDownloadStorage.remove(url) }
             let diagnostic = (error as? EngineClientError)?.diagnosticDescription
                 ?? String(reflecting: error)
             logs.append(.init(level: "error", message: diagnostic))

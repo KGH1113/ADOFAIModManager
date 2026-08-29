@@ -29,6 +29,8 @@ import Testing
     #expect(LayoutMetrics.pageVertical == 28)
     #expect(LayoutMetrics.cardPadding == 20)
     #expect(LayoutMetrics.cardCornerRadius == 16)
+    #expect(LayoutMetrics.sidebarWidth == 210)
+    #expect(LayoutMetrics.catalogListWidth == 260)
 }
 
 @Test func gameLogDefaultsAndFutureContractAreStable() {

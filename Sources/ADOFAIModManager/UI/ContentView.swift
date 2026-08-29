@@ -10,11 +10,13 @@ struct ContentView: View {
             List(SidebarSection.allCases, selection: $model.selection) { section in
                 Label(localization.string(section.titleKey), systemImage: section.symbol).tag(section)
             }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 210)
+            .frame(width: LayoutMetrics.sidebarWidth)
+            .navigationSplitViewColumnWidth(LayoutMetrics.sidebarWidth)
         } detail: {
             Group {
                 switch model.selection ?? .install {
                 case .install: InstallationView()
+                case .catalog: ModCatalogView()
                 case .mods: ModsView()
                 case .logs: LogsView()
                 }

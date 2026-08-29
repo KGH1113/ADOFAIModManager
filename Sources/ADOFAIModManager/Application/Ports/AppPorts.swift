@@ -4,6 +4,11 @@ protocol EngineServing: Sendable {
     func run(_ request: EngineRequest) async throws -> EngineResponse
 }
 
+protocol ModCatalogServing: Sendable {
+    func fetchMods() async throws -> [RemoteMod]
+    func download(_ mod: RemoteMod) async throws -> URL
+}
+
 protocol GameLocating {
     func locate() -> URL?
     func validate(_ url: URL) -> Bool

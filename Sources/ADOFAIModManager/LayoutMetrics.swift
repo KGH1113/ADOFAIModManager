@@ -11,6 +11,8 @@ enum LayoutMetrics {
     static let cardPadding: CGFloat = 20
     static let cardCornerRadius: CGFloat = 16
     static let readableContentWidth: CGFloat = 760
+    static let sidebarWidth: CGFloat = 210
+    static let catalogListWidth: CGFloat = 260
 }
 
 enum GameLogConfiguration {

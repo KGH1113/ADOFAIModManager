@@ -5,6 +5,7 @@ struct ADOFAIModManagerApp: App {
     @StateObject private var localization: LocalizationController
     @StateObject private var model: AppModel
     @StateObject private var installationViewModel: InstallationViewModel
+    @StateObject private var modCatalogViewModel: ModCatalogViewModel
     @StateObject private var modsViewModel: ModsViewModel
     @StateObject private var logsViewModel: LogsViewModel
 
@@ -15,6 +16,10 @@ struct ADOFAIModManagerApp: App {
         _localization = StateObject(wrappedValue: localization)
         _model = StateObject(wrappedValue: model)
         _installationViewModel = StateObject(wrappedValue: InstallationViewModel(app: model))
+        _modCatalogViewModel = StateObject(wrappedValue: ModCatalogViewModel(
+            app: model,
+            service: container.modCatalog
+        ))
         _modsViewModel = StateObject(wrappedValue: ModsViewModel(app: model))
         _logsViewModel = StateObject(wrappedValue: LogsViewModel(app: model))
     }
@@ -24,6 +29,7 @@ struct ADOFAIModManagerApp: App {
             ContentView()
             .environmentObject(model)
             .environmentObject(installationViewModel)
+            .environmentObject(modCatalogViewModel)
             .environmentObject(modsViewModel)
             .environmentObject(logsViewModel)
                 .environmentObject(localization)

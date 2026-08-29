@@ -63,7 +63,104 @@ struct ModInspection: Decodable, Sendable {
 struct PendingModImport: Identifiable, Sendable {
     let url: URL
     let inspection: ModInspection
+    let deleteWhenFinished: Bool
     var id: String { url.path }
+}
+
+struct RemoteMod: Decodable, Identifiable, Sendable, Equatable {
+    let id: String
+    let name: String
+    let version: String?
+    let description: String
+    let cachedUsername: String
+    let uploadedTimestamp: Int64
+    let parsedDownload: String?
+    let download: String?
+    let imageURL: String?
+    let hideFromSearch: Bool
+
+    var preferredDownloadURL: URL? {
+        [parsedDownload, download]
+            .compactMap { $0 }
+            .compactMap(URL.init(string:))
+            .first { $0.scheme?.lowercased() == "https" }
+    }
+
+    var action: RemoteModAction {
+        guard let url = preferredDownloadURL else { return .openWebsite }
+        if url.pathExtension.caseInsensitiveCompare("zip") == .orderedSame {
+            return .downloadAndInstall
+        }
+
+        let host = url.host?.lowercased() ?? ""
+        let path = url.path.lowercased()
+        if host == "youtu.be" || host.hasSuffix("youtube.com") {
+            return .openWebsite
+        }
+        if host == "github.com" && !path.contains("/releases/download/") {
+            return .openWebsite
+        }
+        if ["htm", "html"].contains(url.pathExtension.lowercased()) {
+            return .openWebsite
+        }
+        return .downloadAndInspect
+    }
+
+    func matches(searchQuery query: String) -> Bool {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+        return [name, cachedUsername, description]
+            .contains { $0.localizedStandardContains(query) }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, version, description, cachedUsername, uploadedTimestamp
+        case parsedDownload, download, imageURL, hideFromSearch
+    }
+
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(String.self, forKey: .id)
+        name = try values.decode(String.self, forKey: .name)
+        version = try values.decodeIfPresent(String.self, forKey: .version)
+        description = try values.decodeIfPresent(String.self, forKey: .description) ?? ""
+        cachedUsername = try values.decodeIfPresent(String.self, forKey: .cachedUsername) ?? ""
+        uploadedTimestamp = try values.decodeIfPresent(Int64.self, forKey: .uploadedTimestamp) ?? 0
+        parsedDownload = try values.decodeIfPresent(String.self, forKey: .parsedDownload)
+        download = try values.decodeIfPresent(String.self, forKey: .download)
+        imageURL = try values.decodeIfPresent(String.self, forKey: .imageURL)
+        hideFromSearch = try values.decodeIfPresent(Bool.self, forKey: .hideFromSearch) ?? false
+    }
+
+    init(
+        id: String,
+        name: String,
+        version: String? = nil,
+        description: String = "",
+        cachedUsername: String = "",
+        uploadedTimestamp: Int64 = 0,
+        parsedDownload: String? = nil,
+        download: String? = nil,
+        imageURL: String? = nil,
+        hideFromSearch: Bool = false
+    ) {
+        self.id = id
+        self.name = name
+        self.version = version
+        self.description = description
+        self.cachedUsername = cachedUsername
+        self.uploadedTimestamp = uploadedTimestamp
+        self.parsedDownload = parsedDownload
+        self.download = download
+        self.imageURL = imageURL
+        self.hideFromSearch = hideFromSearch
+    }
+}
+
+enum RemoteModAction: Sendable, Equatable {
+    case downloadAndInstall
+    case openWebsite
+    case downloadAndInspect
 }
 
 struct EngineLogLine: Decodable, Identifiable, Sendable {
@@ -74,6 +171,7 @@ struct EngineLogLine: Decodable, Identifiable, Sendable {
 
 enum SidebarSection: String, CaseIterable, Identifiable {
     case install
+    case catalog
     case mods
     case logs
 
@@ -81,6 +179,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     var titleKey: String {
         switch self {
         case .install: "설치"
+        case .catalog: "모드 찾기"
         case .mods: "모드"
         case .logs: "로그"
         }
@@ -88,6 +187,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .install: "shippingbox"
+        case .catalog: "magnifyingglass"
         case .mods: "puzzlepiece.extension"
         case .logs: "text.page"
         }
