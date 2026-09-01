@@ -1,10 +1,11 @@
 using System.Text;
 using ADOFAIModManager.Windows.Application.Abstractions;
+using ADOFAIModManager.Windows.Application.Localization;
 using NativeUmm.Domain.Games;
 
 namespace ADOFAIModManager.Windows.Infrastructure.Logs;
 
-internal sealed class WindowsLogReader : IWindowsLogReader
+internal sealed class WindowsLogReader(ILocalizationService localization) : IWindowsLogReader
 {
     public string GameLogPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -17,7 +18,7 @@ internal sealed class WindowsLogReader : IWindowsLogReader
     public string ReadUmmLog(GameInstallation? installation) =>
         UmmLogPath(installation) is { } path ? ReadTail(path, 400) : "";
 
-    private static string ReadTail(string path, int lineCount)
+    private string ReadTail(string path, int lineCount)
     {
         if (!File.Exists(path)) return "";
         try
@@ -34,7 +35,7 @@ internal sealed class WindowsLogReader : IWindowsLogReader
         }
         catch (Exception exception)
         {
-            return $"로그를 읽을 수 없습니다: {exception.Message}";
+            return localization.Format("Logs_ReadError", exception.Message);
         }
     }
 }

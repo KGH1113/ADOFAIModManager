@@ -1,0 +1,48 @@
+<Page
+    x:Class="ADOFAIModManager.Windows.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel Padding="32,28" Spacing="24" MaxWidth="720" HorizontalAlignment="Center">
+            <StackPanel Spacing="6">
+                <TextBlock Text="{Binding Localization[Settings_Title], Mode=OneWay}"
+                           Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock Text="{Binding Localization[Settings_Subtitle], Mode=OneWay}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <Border Padding="22" CornerRadius="12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="{Binding Localization[Settings_Language], Mode=OneWay}"
+                               FontWeight="SemiBold" />
+                    <ComboBox SelectedIndex="{Binding SelectedLanguageIndex, Mode=TwoWay}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="{Binding Localization[Settings_System], Mode=OneWay}" />
+                        <ComboBoxItem Content="{Binding Localization[Settings_Korean], Mode=OneWay}" />
+                        <ComboBoxItem Content="{Binding Localization[Settings_English], Mode=OneWay}" />
+                        <ComboBoxItem Content="{Binding Localization[Settings_Chinese], Mode=OneWay}" />
+                    </ComboBox>
+                    <TextBlock Text="{Binding Localization[Settings_Immediate], Mode=OneWay}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="22" CornerRadius="12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding Localization[Settings_About], Mode=OneWay}"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="ADOFAI Mod Manager" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                    <TextBlock Text="{Binding Localization[Settings_Disclaimer], Mode=OneWay}"
+                               TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
+

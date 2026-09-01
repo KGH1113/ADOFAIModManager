@@ -42,7 +42,7 @@ public partial class App : Application
         _mainInstance.Activated += (_, eventArgs) =>
             MainWindowInstance.DispatcherQueue.TryEnqueue(() => _ = HandleActivationAsync(eventArgs));
 
-        FileAssociationRegistrar.Register();
+        FileAssociationRegistrar.Register(MainWindowInstance.ViewModel.Localization);
         MainWindowInstance.Activate();
         await MainWindowInstance.InitializeAsync();
         await HandleActivationAsync(activation);

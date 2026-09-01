@@ -38,14 +38,17 @@ public sealed partial class ModsPage : Page
         if (preview is null)
             return;
 
-        var version = string.IsNullOrWhiteSpace(preview.Version) ? "버전 정보 없음" : $"버전 {preview.Version}";
+        var version = string.IsNullOrWhiteSpace(preview.Version)
+            ? ViewModel.Localization["Mods_VersionUnknown"]
+            : ViewModel.Localization.Format("Mods_Version", preview.Version);
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = preview.AlreadyInstalled ? $"‘{preview.Name}’ 모드를 교체하시겠습니까?" : $"‘{preview.Name}’ 모드를 추가하시겠습니까?",
+            Title = ViewModel.Localization.Format(
+                preview.AlreadyInstalled ? "Mods_ConfirmReplace" : "Mods_ConfirmAdd", preview.Name),
             Content = $"{version}\n{preview.Id}",
-            PrimaryButtonText = preview.AlreadyInstalled ? "교체" : "모드 추가",
-            CloseButtonText = "취소",
+            PrimaryButtonText = ViewModel.Localization[preview.AlreadyInstalled ? "Mods_Replace" : "Mods_Add"],
+            CloseButtonText = ViewModel.Localization["Common_Cancel"],
             DefaultButton = ContentDialogButton.Primary
         };
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)
@@ -74,7 +77,7 @@ public sealed partial class ModsPage : Page
         if (!e.DataView.Contains(StandardDataFormats.StorageItems))
             return;
         e.AcceptedOperation = DataPackageOperation.Copy;
-        e.DragUIOverride.Caption = "UMM 모드 확인";
+        e.DragUIOverride.Caption = ViewModel.Localization["Mods_DragCaption"];
         DropOverlay.Visibility = Visibility.Visible;
     }
 

@@ -1,4 +1,5 @@
 using ADOFAIModManager.Windows.Infrastructure.Process;
+using ADOFAIModManager.Windows.Infrastructure.Localization;
 using ADOFAIModManager.Windows.Infrastructure.Logs;
 using ADOFAIModManager.Windows.Infrastructure.Steam;
 using ADOFAIModManager.Windows.Infrastructure.Shell;
@@ -17,6 +18,9 @@ internal static class CompositionRoot
     {
         var log = new BufferedOperationLog();
         var appData = AppDataPaths.ForWindows();
+        var settingsPath = Path.Combine(Path.GetDirectoryName(appData.Cache)!, "settings.json");
+        var settings = new JsonAppLanguageStore(settingsPath);
+        var localization = new LocalizationService(settings);
         var gameService = new GameService(
             new WindowsGameLocator(),
             new WindowsGameProcessProbe(),
@@ -26,8 +30,9 @@ internal static class CompositionRoot
             appData);
         return new MainViewModel(
             gameService,
-            appData,
+            localization,
+            settings,
             new WindowsWorkspaceShell(),
-            new WindowsLogReader());
+            new WindowsLogReader(localization));
     }
 }

@@ -7,7 +7,7 @@
         <StackPanel Padding="32,28" Spacing="24" MaxWidth="820" HorizontalAlignment="Center">
             <StackPanel Spacing="6">
                 <TextBlock Text="ADOFAI Mod Manager" Style="{ThemeResource TitleTextBlockStyle}" />
-                <TextBlock Text="얼불춤에 UMM을 설치하고 모드를 관리합니다."
+                <TextBlock Text="{Binding Localization[Install_Subtitle], Mode=OneWay}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
 
@@ -20,12 +20,12 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="4">
-                            <TextBlock Text="얼불춤" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{Binding Localization[Install_Game], Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             <TextBlock Text="{Binding GameLocationText, Mode=OneWay}" FontWeight="SemiBold" />
                             <TextBlock Text="{Binding GameDirectory, Mode=OneWay}" TextTrimming="CharacterEllipsis"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
                         </StackPanel>
-                        <Button Grid.Column="1" Content="게임 폴더 선택" Click="ChooseGame_Click" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="{Binding Localization[Install_ChooseFolder], Mode=OneWay}" Click="ChooseGame_Click" VerticalAlignment="Center" />
                     </Grid>
 
                     <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
@@ -41,26 +41,26 @@
                 IsOpen="{Binding HasInstallWarning, Mode=OneWay}"
                 IsClosable="False"
                 Severity="Warning"
-                Title="설치 상태를 확인해야 합니다"
-                Message="설치 문제 해결을 실행하면 필요한 파일을 다시 확인합니다." />
+                Title="{Binding Localization[Install_WarningTitle], Mode=OneWay}"
+                Message="{Binding Localization[Install_WarningMessage], Mode=OneWay}" />
 
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <Button Content="{Binding PrimaryInstallText, Mode=OneWay}" Style="{ThemeResource AccentButtonStyle}"
                         IsEnabled="{Binding CanInstall, Mode=OneWay}" Click="Install_Click" />
-                <Button Content="더 보기">
+                <Button Content="{Binding Localization[Install_More], Mode=OneWay}">
                     <Button.Flyout>
                         <MenuFlyout>
-                            <MenuFlyoutItem Text="상태 다시 확인" Click="Refresh_Click" />
-                            <MenuFlyoutItem Text="설치 문제 해결" Click="Repair_Click" />
+                            <MenuFlyoutItem Text="{Binding Localization[Install_Refresh], Mode=OneWay}" Click="Refresh_Click" />
+                            <MenuFlyoutItem Text="{Binding Localization[Install_Repair], Mode=OneWay}" Click="Repair_Click" />
                             <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="UMM 제거" Click="Remove_Click" />
-                            <MenuFlyoutItem Text="설치 전 상태로 되돌리기" Click="Restore_Click" />
+                            <MenuFlyoutItem Text="{Binding Localization[Install_Remove], Mode=OneWay}" Click="Remove_Click" />
+                            <MenuFlyoutItem Text="{Binding Localization[Install_Restore], Mode=OneWay}" Click="Restore_Click" />
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
             </StackPanel>
 
-            <TextBlock Text="일반적으로 관리자 권한은 필요하지 않습니다. 게임이 실행 중이면 먼저 종료해 주세요."
+            <TextBlock Text="{Binding Localization[Install_Note], Mode=OneWay}"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
         </StackPanel>
     </ScrollViewer>

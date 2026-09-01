@@ -87,7 +87,7 @@ internal static class UserInstallation
         var link = (IShellLinkW)new ShellLink();
         link.SetPath(InstalledExePath);
         link.SetWorkingDirectory(InstallDirectory);
-        link.SetDescription("얼불춤 UMM 및 모드 관리");
+        link.SetDescription("Manage ADOFAI UMM and mods");
         ((IPersistFile)link).Save(shortcutPath, true);
     }
 

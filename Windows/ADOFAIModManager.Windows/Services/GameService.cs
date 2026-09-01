@@ -18,7 +18,7 @@ internal sealed class GameService(
     private void EnsureGameClosed()
     {
         if (gameProcessProbe.IsRunning())
-            throw new InvalidOperationException("얼불춤이 실행 중입니다. 게임을 종료한 다음 다시 시도해 주세요.");
+            throw new GameRunningException();
     }
 
     public async Task InstallAsync(GameInstallation layout, bool repair)
@@ -69,20 +69,6 @@ internal sealed class GameService(
         modService.SetEnabled(layout, modId, enabled);
     }
 
-    public void UninstallMod(GameInstallation layout, string path)
-    {
-        EnsureGameClosed();
-        operationLog.Begin();
-        modService.Uninstall(layout, path);
-    }
-
-    public void RestoreMod(GameInstallation layout, string path)
-    {
-        EnsureGameClosed();
-        operationLog.Begin();
-        modService.Restore(layout, path);
-    }
-
     public void PermanentlyRemoveMod(GameInstallation layout, string path)
     {
         EnsureGameClosed();
@@ -101,8 +87,7 @@ internal sealed class GameService(
         }
         catch (Exception ex)
         {
-            throw new UnauthorizedAccessException(
-                "얼불춤 폴더를 변경할 수 없습니다. Steam의 게임 폴더 권한을 확인해 주세요.", ex);
+            throw new UnauthorizedAccessException("Game folder is not writable.", ex);
         }
         finally
         {
@@ -130,3 +115,5 @@ internal sealed class GameService(
         }
     }
 }
+
+internal sealed class GameRunningException : InvalidOperationException { }

@@ -13,6 +13,7 @@ public sealed partial class MainWindow : Window
     private readonly InstallPage _installPage;
     private readonly ModsPage _modsPage;
     private readonly LogsPage _logsPage;
+    private readonly SettingsPage _settingsPage;
 
     internal MainWindow(MainViewModel viewModel)
     {
@@ -25,6 +26,7 @@ public sealed partial class MainWindow : Window
         _installPage = new InstallPage(ViewModel.Installation);
         _modsPage = new ModsPage(ViewModel.Mods);
         _logsPage = new LogsPage(ViewModel.Logs);
+        _settingsPage = new SettingsPage(ViewModel.Localization);
 
         var hwnd = WindowNative.GetWindowHandle(this);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
@@ -62,4 +64,10 @@ public sealed partial class MainWindow : Window
     }
 
     private void ErrorInfoBar_CloseButtonClick(InfoBar sender, object args) => ViewModel.DismissError();
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        Navigation.SelectedItem = null;
+        ContentFrame.Content = _settingsPage;
+    }
 }

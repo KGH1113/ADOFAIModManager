@@ -1,16 +1,17 @@
 using Microsoft.Windows.AppLifecycle;
+using ADOFAIModManager.Windows.Application.Localization;
 
 namespace ADOFAIModManager.Windows.Infrastructure.Installation;
 
 internal static class FileAssociationRegistrar
 {
-    public static void Register()
+    public static void Register(ILocalizationService localization)
     {
         if (!File.Exists(UserInstallation.InstalledExePath)) return;
         try
         {
             ActivationRegistrationManager.RegisterForFileTypeActivation(
-                [".zip"], string.Empty, "ADOFAI Mod Manager로 모드 설치", ["open"],
+                [".zip"], string.Empty, localization["Shell_FileAssociation"], ["open"],
                 UserInstallation.InstalledExePath);
         }
         catch { }

@@ -21,13 +21,13 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Spacing="6">
-                <TextBlock Text="모드" Style="{ThemeResource TitleTextBlockStyle}" />
-                <TextBlock Text="ZIP 파일을 추가하거나 이 화면에 끌어 놓으세요."
+                <TextBlock Text="{Binding Localization[Mods_Title], Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock Text="{Binding Localization[Mods_Subtitle], Mode=OneWay}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
-            <Button Grid.Column="1" Content="목록 새로 고침" Click="Refresh_Click" VerticalAlignment="Center" />
-            <Button Grid.Column="2" Content="모드 폴더 열기" Click="OpenFolder_Click" VerticalAlignment="Center" />
-            <Button Grid.Column="3" Content="모드 추가" Style="{ThemeResource AccentButtonStyle}"
+            <Button Grid.Column="1" Content="{Binding Localization[Mods_Refresh], Mode=OneWay}" Click="Refresh_Click" VerticalAlignment="Center" />
+            <Button Grid.Column="2" Content="{Binding Localization[Mods_OpenFolder], Mode=OneWay}" Click="OpenFolder_Click" VerticalAlignment="Center" />
+            <Button Grid.Column="3" Content="{Binding Localization[Mods_Add], Mode=OneWay}" Style="{ThemeResource AccentButtonStyle}"
                     Click="AddMod_Click" VerticalAlignment="Center" />
         </Grid>
 
@@ -43,9 +43,8 @@
 
                         <ToggleButton
                             IsChecked="{Binding Enabled, Mode=OneWay}"
-                            Visibility="{Binding InstalledVisibility}"
                             Click="ModToggle_Click"
-                            Content="켜짐"
+                            Content="{Binding ToggleLabel, Mode=OneWay}"
                             VerticalAlignment="Center" />
 
                         <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
@@ -59,7 +58,7 @@
                                        Visibility="{Binding RequirementVisibility}" />
                         </StackPanel>
 
-                        <Button Grid.Column="2" Content="삭제"
+                        <Button Grid.Column="2" Content="{Binding Localization[Mods_Delete], Mode=OneWay}"
                                 Click="DeleteMod_Click" VerticalAlignment="Center" />
                     </Grid>
                 </DataTemplate>
@@ -74,7 +73,7 @@
                     BorderBrush="{ThemeResource AccentFillColorDefaultBrush}" BorderThickness="2">
                 <StackPanel HorizontalAlignment="Center" Spacing="12">
                     <FontIcon Glyph="&#xE74D;" FontSize="42" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                    <TextBlock Text="모드 ZIP을 여기에 놓으세요" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                    <TextBlock Text="{Binding Localization[Mods_Drop], Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" />
                 </StackPanel>
             </Border>
         </Grid>

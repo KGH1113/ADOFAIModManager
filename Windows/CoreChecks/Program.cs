@@ -7,6 +7,9 @@ using NativeUmm.Infrastructure.Installation;
 using NativeUmm.Infrastructure.Logging;
 using NativeUmm.Infrastructure.Mods;
 using NativeUmm.Infrastructure.Storage;
+using ADOFAIModManager.Windows.Application.Localization;
+using ADOFAIModManager.Windows.Infrastructure.Localization;
+using System.Globalization;
 
 var locator = new WindowsGameLocator();
 if (locator.Locate(Path.Combine(Path.GetTempPath(), "adofai-does-not-exist")) is not null)
@@ -38,6 +41,27 @@ try
     var layout = locator.Locate(testRoot)
         ?? throw new InvalidOperationException("A valid test game directory was rejected.");
 
+    var settingsPath = Path.Combine(testRoot, "settings.json");
+    var settings = new JsonAppLanguageStore(settingsPath);
+    if (settings.LoadLanguage() != AppLanguage.System)
+        throw new InvalidOperationException("Missing language settings did not default to System.");
+    var localization = new LocalizationService(settings, () => CultureInfo.GetCultureInfo("en-US"));
+    if (localization["Nav_Install"] != "Install")
+        throw new InvalidOperationException("English Windows did not select English resources.");
+    localization.SelectLanguage(AppLanguage.Korean);
+    await settings.SaveGamePathAsync(layout.GameRoot);
+    if (localization["Nav_Install"] != "설치" || settings.LoadLanguage() != AppLanguage.Korean)
+        throw new InvalidOperationException("The selected language was not applied and persisted.");
+    if (settings.LoadGamePath() != layout.GameRoot)
+        throw new InvalidOperationException("Saving the language overwrote the selected game path.");
+    localization.SelectLanguage(AppLanguage.System);
+    var chinese = new LocalizationService(settings, () => CultureInfo.GetCultureInfo("zh-CN"));
+    if (chinese["Nav_Install"] != "安装")
+        throw new InvalidOperationException("Simplified Chinese system culture was not detected.");
+    var unsupported = new LocalizationService(settings, () => CultureInfo.GetCultureInfo("fr-FR"));
+    if (unsupported["Nav_Install"] != "Install")
+        throw new InvalidOperationException("Unsupported system culture did not fall back to English.");
+
     var validZip = Path.Combine(testRoot, "valid.zip");
     using (var archive = ZipFile.Open(validZip, ZipArchiveMode.Create))
     {
@@ -46,10 +70,18 @@ try
         WriteEntry(archive, "ExampleMod/ExampleMod.dll", "test");
     }
     var log = new BufferedOperationLog();
-    var modService = new FileModService(log, new AppDataPaths(Path.Combine(testRoot, "app-data")));
+    var appData = new AppDataPaths(Path.Combine(testRoot, "app-data"));
+    var modService = new FileModService(log, appData);
     var inspection = modService.Inspect(layout, validZip);
     if (inspection.Id != "ExampleMod" || inspection.DisplayName != "Example Mod")
         throw new InvalidOperationException("A valid mod archive was not inspected correctly.");
+
+    var deletePath = Path.Combine(layout.ModsPath, "DeleteMe");
+    Directory.CreateDirectory(deletePath);
+    File.WriteAllText(Path.Combine(deletePath, "Info.json"), "{\"Id\":\"DeleteMe\"}");
+    modService.Remove(layout, deletePath);
+    if (Directory.Exists(deletePath) || Directory.EnumerateFileSystemEntries(appData.RemovedMods).Any())
+        throw new InvalidOperationException("Permanent mod deletion created a recoverable backup.");
 
     var traversalZip = Path.Combine(testRoot, "traversal.zip");
     using (var archive = ZipFile.Open(traversalZip, ZipArchiveMode.Create))
@@ -69,7 +101,7 @@ try
     }
     ExpectInvalidArchive(modService, layout, ratioZip, "unsafe compression ratio");
 
-    Console.WriteLine("Windows core checks passed: UMM startup points, layout validation, mod inspection, and ZIP guards.");
+    Console.WriteLine("Windows core checks passed: localization, UMM startup points, layout validation, mod inspection, and ZIP guards.");
 }
 finally
 {

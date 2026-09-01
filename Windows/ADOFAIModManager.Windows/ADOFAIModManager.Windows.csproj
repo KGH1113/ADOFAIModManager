@@ -28,6 +28,10 @@
 
   <ItemGroup>
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="Resources/Strings.*.json">
+      <LogicalName>ADOFAIModManager.Windows.Resources.%(Filename)%(Extension)</LogicalName>
+      <WithCulture>false</WithCulture>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

@@ -6,6 +6,7 @@ using ADOFAIModManager.Windows.Services;
 using Microsoft.UI.Xaml;
 using NativeUmm.Application.Abstractions;
 using ADOFAIModManager.Windows.Application.Abstractions;
+using ADOFAIModManager.Windows.Application.Localization;
 
 namespace ADOFAIModManager.Windows.ViewModels;
 
@@ -15,11 +16,12 @@ internal sealed class MainViewModel : ObservableObject
 
     public MainViewModel(
         GameService gameService,
-        IAppDataPaths appData,
+        ILocalizationService localization,
+        IAppLanguageStore settings,
         IWorkspaceShell workspace,
         IWindowsLogReader logReader)
     {
-        session = new AppSession(gameService, appData);
+        session = new AppSession(gameService, localization, settings);
         Installation = new InstallationViewModel(session);
         Mods = new ModsViewModel(session, workspace);
         Logs = new LogsViewModel(session, workspace, logReader);
@@ -31,6 +33,7 @@ internal sealed class MainViewModel : ObservableObject
     public InstallationViewModel Installation { get; }
     public ModsViewModel Mods { get; }
     public LogsViewModel Logs { get; }
+    public ILocalizationService Localization => session.Localization;
     public bool IsBusy => session.IsBusy;
     public Visibility BusyVisibility => session.BusyVisibility;
     public string Activity => session.Activity;
@@ -38,7 +41,7 @@ internal sealed class MainViewModel : ObservableObject
     public bool HasError => session.HasError;
 
     public Task InitializeAsync() => Installation.InitializeAsync();
-    public Task RefreshAsync() => session.RunAsync("상태 확인 중…", RefreshAllCoreAsync);
+    public Task RefreshAsync() => session.RunAsync("Activity_CheckStatus", RefreshAllCoreAsync);
     public void DismissError() => session.DismissError();
 
     private async Task RefreshAllCoreAsync()

@@ -33,27 +33,27 @@ public sealed partial class InstallPage : Page
 
     private async void Remove_Click(object sender, RoutedEventArgs e)
     {
-        if (!await ConfirmAsync("UMM을 제거하시겠습니까?", "게임 시작 파일에서 UMM 연결을 제거하고 UMM 파일을 복구 가능한 위치로 옮깁니다."))
+        if (!await ConfirmAsync("Install_ConfirmRemoveTitle", "Install_ConfirmRemoveMessage"))
             return;
         await ViewModel.RemoveUmmAsync();
     }
 
     private async void Restore_Click(object sender, RoutedEventArgs e)
     {
-        if (!await ConfirmAsync("설치 전 상태로 되돌리시겠습니까?", "보관된 원본 게임 파일을 복원합니다."))
+        if (!await ConfirmAsync("Install_ConfirmRestoreTitle", "Install_ConfirmRestoreMessage"))
             return;
         await ViewModel.RestoreOriginalAsync();
     }
 
-    private async Task<bool> ConfirmAsync(string title, string message)
+    private async Task<bool> ConfirmAsync(string titleKey, string messageKey)
     {
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = title,
-            Content = message,
-            PrimaryButtonText = "계속",
-            CloseButtonText = "취소",
+            Title = ViewModel.Localization[titleKey],
+            Content = ViewModel.Localization[messageKey],
+            PrimaryButtonText = ViewModel.Localization["Common_Continue"],
+            CloseButtonText = ViewModel.Localization["Common_Cancel"],
             DefaultButton = ContentDialogButton.Close
         };
         return await dialog.ShowAsync() == ContentDialogResult.Primary;

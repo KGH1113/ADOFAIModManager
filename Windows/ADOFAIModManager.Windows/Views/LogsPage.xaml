@@ -15,23 +15,23 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Spacing="6">
-                <TextBlock Text="로그" Style="{ThemeResource TitleTextBlockStyle}" />
-                <TextBlock Text="게임 실행 기록과 UMM 기술 로그를 확인합니다."
+                <TextBlock Text="{Binding Localization[Logs_Title], Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock Text="{Binding Localization[Logs_Subtitle], Mode=OneWay}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
-            <Button Grid.Column="1" Content="새로 고침" Click="Refresh_Click" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="{Binding Localization[Logs_Refresh], Mode=OneWay}" Click="Refresh_Click" VerticalAlignment="Center" />
         </Grid>
 
         <TabView Grid.Row="1" Margin="24,0,24,24" IsAddTabButtonVisible="False" CanDragTabs="False">
-            <TabViewItem Header="게임 로그" IsClosable="False">
+            <TabViewItem Header="{Binding Localization[Logs_GameTab], Mode=OneWay}" IsClosable="False">
                 <Grid Padding="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <Grid Margin="0,0,0,10">
-                        <TextBlock Text="최근 30줄" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Button Content="Explorer에서 보기" HorizontalAlignment="Right" Click="OpenGameLog_Click" />
+                        <TextBlock Text="{Binding Localization[Logs_LastLines], Mode=OneWay}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button Content="{Binding Localization[Logs_Reveal], Mode=OneWay}" HorizontalAlignment="Right" Click="OpenGameLog_Click" />
                     </Grid>
                     <TextBox Grid.Row="1" Text="{Binding GameLogText, Mode=OneWay}" IsReadOnly="True"
                              AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas"
@@ -40,15 +40,15 @@
                 </Grid>
             </TabViewItem>
 
-            <TabViewItem Header="UMM 로그" IsClosable="False">
+            <TabViewItem Header="{Binding Localization[Logs_UmmTab], Mode=OneWay}" IsClosable="False">
                 <Grid Padding="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <Grid Margin="0,0,0,10">
-                        <TextBlock Text="UMM 기술 로그" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Button Content="Explorer에서 보기" HorizontalAlignment="Right" Click="OpenUmmLog_Click" />
+                        <TextBlock Text="{Binding Localization[Logs_Technical], Mode=OneWay}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button Content="{Binding Localization[Logs_Reveal], Mode=OneWay}" HorizontalAlignment="Right" Click="OpenUmmLog_Click" />
                     </Grid>
                     <TextBox Grid.Row="1" Text="{Binding UmmLogText, Mode=OneWay}" IsReadOnly="True"
                              AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas"
@@ -57,7 +57,7 @@
                 </Grid>
             </TabViewItem>
 
-            <TabViewItem Header="작업 기록" IsClosable="False">
+            <TabViewItem Header="{Binding Localization[Logs_OperationsTab], Mode=OneWay}" IsClosable="False">
                 <ListView ItemsSource="{Binding OperationLogs}" Padding="8">
                     <ListView.ItemTemplate>
                         <DataTemplate>

@@ -1,22 +1,48 @@
 using System.Collections.ObjectModel;
+using ADOFAIModManager.Windows.Application.Localization;
 using ADOFAIModManager.Windows.Models;
 using ADOFAIModManager.Windows.Services;
 using Microsoft.UI.Xaml;
-using NativeUmm.Application.Abstractions;
 using NativeUmm.Domain.Games;
 
 namespace ADOFAIModManager.Windows.ViewModels;
 
-internal sealed class AppSession(GameService gameService, IAppDataPaths appData) : ObservableObject
+internal sealed class AppSession : ObservableObject
 {
     private bool isBusy;
     private string activity = "";
     private string lastError = "";
+    private string? activityKey;
+    private string? lastErrorKey;
 
-    public GameService GameService { get; } = gameService;
+    public GameService GameService { get; }
+    public ILocalizationService Localization { get; }
+    public IAppLanguageStore Settings { get; }
     public GameInstallation? Installation { get; set; }
-    public string SettingsPath => Path.Combine(Path.GetDirectoryName(appData.Cache)!, "settings.json");
     public ObservableCollection<LogEntry> OperationLogs { get; } = [];
+
+    public AppSession(
+        GameService gameService,
+        ILocalizationService localization,
+        IAppLanguageStore settings)
+    {
+        GameService = gameService;
+        Localization = localization;
+        Settings = settings;
+        localization.LanguageChanged += (_, _) =>
+        {
+            if (activityKey is not null)
+            {
+                activity = localization[activityKey];
+                RaisePropertyChanged(nameof(Activity));
+            }
+            if (lastErrorKey is not null)
+            {
+                lastError = localization[lastErrorKey];
+                RaisePropertyChanged(nameof(LastError));
+            }
+        };
+    }
 
     public bool IsBusy
     {
@@ -41,11 +67,12 @@ internal sealed class AppSession(GameService gameService, IAppDataPaths appData)
     }
     public bool HasError => !string.IsNullOrWhiteSpace(LastError);
 
-    public async Task RunAsync(string activityText, Func<Task> action)
+    public async Task RunAsync(string activityResourceKey, Func<Task> action)
     {
         if (IsBusy) return;
         IsBusy = true;
-        Activity = activityText;
+        activityKey = activityResourceKey;
+        Activity = Localization[activityResourceKey];
         DismissError();
         try
         {
@@ -54,33 +81,53 @@ internal sealed class AppSession(GameService gameService, IAppDataPaths appData)
         catch (Exception exception)
         {
             AppendOperationLog();
-            SetError(FriendlyMessage(exception));
+            var (key, message) = FriendlyMessage(exception);
+            if (key is not null) SetLocalizedError(key);
+            else SetError(message);
         }
         finally
         {
             Activity = "";
+            activityKey = null;
             IsBusy = false;
         }
     }
 
-    public async Task RunGameActionAsync(string activityText, Func<GameInstallation, Task> action)
+    public async Task RunGameActionAsync(string activityResourceKey, Func<GameInstallation, Task> action)
     {
         if (Installation is null)
         {
-            SetError("먼저 얼불춤 폴더를 선택해 주세요.");
+            SetLocalizedError("Error_SelectGameFirst");
             return;
         }
 
-        await RunAsync(activityText, async () =>
+        await RunAsync(activityResourceKey, async () =>
         {
             await Task.Run(() => action(Installation));
             AppendOperationLog();
         });
     }
 
-    public void DismissError() => LastError = "";
+    public void DismissError()
+    {
+        lastErrorKey = null;
+        LastError = "";
+    }
 
     public void SetError(string message)
+    {
+        lastErrorKey = null;
+        LastError = message;
+        OperationLogs.Add(new LogEntry("error", message, DateTimeOffset.Now));
+    }
+
+    public void SetLocalizedError(string key)
+    {
+        lastErrorKey = key;
+        SetErrorCore(Localization[key]);
+    }
+
+    private void SetErrorCore(string message)
     {
         LastError = message;
         OperationLogs.Add(new LogEntry("error", message, DateTimeOffset.Now));
@@ -94,17 +141,22 @@ internal sealed class AppSession(GameService gameService, IAppDataPaths appData)
             OperationLogs.RemoveAt(0);
     }
 
-    private static string FriendlyMessage(Exception exception)
+    private static (string? Key, string Message) FriendlyMessage(Exception exception)
     {
-        var current = exception;
-        while (current.InnerException is not null)
-            current = current.InnerException;
-        return current switch
+        var deepest = exception;
+        string? key = null;
+        for (Exception? current = exception; current is not null; current = current.InnerException)
         {
-            UnauthorizedAccessException => "얼불춤 폴더를 변경할 수 없습니다. Steam의 게임 폴더 권한을 확인해 주세요.",
-            InvalidDataException => "파일 내용을 확인할 수 없습니다. 올바른 UMM 또는 모드 파일인지 확인해 주세요.",
-            HttpRequestException => "필요한 파일을 다운로드하지 못했습니다. 인터넷 연결을 확인해 주세요.",
-            _ => current.Message
-        };
+            deepest = current;
+            key ??= current switch
+            {
+                GameRunningException => "Error_GameRunning",
+                UnauthorizedAccessException => "Error_GameFolderPermission",
+                InvalidDataException => "Error_InvalidFile",
+                HttpRequestException => "Error_Download",
+                _ => null
+            };
+        }
+        return (key, deepest.Message);
     }
 }

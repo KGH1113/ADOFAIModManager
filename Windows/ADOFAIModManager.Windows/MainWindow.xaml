@@ -11,10 +11,19 @@
         </Grid.RowDefinitions>
 
         <Grid x:Name="TitleBar" Height="48" Padding="16,0" Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                 <FontIcon Glyph="&#xE7FC;" FontSize="17" />
                 <TextBlock Text="ADOFAI Mod Manager" FontWeight="SemiBold" VerticalAlignment="Center" />
             </StackPanel>
+            <Button Grid.Column="1" Click="Settings_Click"
+                    AutomationProperties.Name="{Binding Localization[Common_Settings], Mode=OneWay}"
+                    ToolTipService.ToolTip="{Binding Localization[Common_Settings], Mode=OneWay}">
+                <FontIcon Glyph="&#xE713;" />
+            </Button>
         </Grid>
 
         <NavigationView
@@ -27,13 +36,13 @@
             OpenPaneLength="220"
             SelectionChanged="Navigation_SelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="설치" Tag="install">
+                <NavigationViewItem Content="{Binding Localization[Nav_Install], Mode=OneWay}" Tag="install">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Download" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="모드" Tag="mods">
+                <NavigationViewItem Content="{Binding Localization[Nav_Mods], Mode=OneWay}" Tag="mods">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Library" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="로그" Tag="logs">
+                <NavigationViewItem Content="{Binding Localization[Nav_Logs], Mode=OneWay}" Tag="logs">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Document" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
@@ -46,7 +55,7 @@
                     VerticalAlignment="Bottom"
                     Severity="Error"
                     IsOpen="{Binding HasError, Mode=OneWay}"
-                    Title="작업을 완료하지 못했습니다"
+                    Title="{Binding Localization[Error_Title], Mode=OneWay}"
                     Message="{Binding LastError, Mode=OneWay}"
                     CloseButtonClick="ErrorInfoBar_CloseButtonClick" />
 
