@@ -8,6 +8,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Engine\NativeUmm.Infrastructure\NativeUmm.Infrastructure.csproj" />
     <Compile Include="..\ADOFAIModManager.Windows\Application\Localization\*.cs" Link="Application\Localization\%(Filename)%(Extension)" />
+    <Compile Include="..\ADOFAIModManager.Windows\Application\Catalog\*.cs" Link="Application\Catalog\%(Filename)%(Extension)" />
+    <Compile Include="..\ADOFAIModManager.Windows\Infrastructure\Catalog\*.cs" Link="Infrastructure\Catalog\%(Filename)%(Extension)" />
     <Compile Include="..\ADOFAIModManager.Windows\Infrastructure\Localization\*.cs" Link="Infrastructure\Localization\%(Filename)%(Extension)" />
     <Compile Include="..\ADOFAIModManager.Windows\Infrastructure\Steam\*.cs" Link="Infrastructure\Steam\%(Filename)%(Extension)" />
     <EmbeddedResource Include="../ADOFAIModManager.Windows/Resources/Strings.*.json">

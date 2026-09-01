@@ -11,6 +11,7 @@ public sealed partial class MainWindow : Window
 {
     internal MainViewModel ViewModel { get; }
     private readonly InstallPage _installPage;
+    private readonly CatalogPage _catalogPage;
     private readonly ModsPage _modsPage;
     private readonly LogsPage _logsPage;
     private readonly SettingsPage _settingsPage;
@@ -23,8 +24,10 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(TitleBar);
 
+        var importWorkflow = new ModImportWorkflow(ViewModel.Mods);
         _installPage = new InstallPage(ViewModel.Installation);
-        _modsPage = new ModsPage(ViewModel.Mods);
+        _modsPage = new ModsPage(ViewModel.Mods, importWorkflow);
+        _catalogPage = new CatalogPage(ViewModel.Catalog, importWorkflow, ShowMods);
         _logsPage = new LogsPage(ViewModel.Logs);
         _settingsPage = new SettingsPage(ViewModel.Localization);
 
@@ -44,8 +47,7 @@ public sealed partial class MainWindow : Window
 
     public async Task HandleModFileAsync(string path)
     {
-        Navigation.SelectedItem = Navigation.MenuItems[1];
-        ContentFrame.Content = _modsPage;
+        ShowMods();
         await _modsPage.ImportPathAsync(path);
     }
 
@@ -55,6 +57,7 @@ public sealed partial class MainWindow : Window
             return;
         ContentFrame.Content = tag switch
         {
+            "catalog" => _catalogPage,
             "mods" => _modsPage,
             "logs" => _logsPage,
             _ => _installPage
@@ -69,5 +72,13 @@ public sealed partial class MainWindow : Window
     {
         Navigation.SelectedItem = null;
         ContentFrame.Content = _settingsPage;
+    }
+
+    private void ShowMods()
+    {
+        Navigation.SelectedItem = Navigation.MenuItems
+            .OfType<NavigationViewItem>()
+            .First(item => Equals(item.Tag, "mods"));
+        ContentFrame.Content = _modsPage;
     }
 }

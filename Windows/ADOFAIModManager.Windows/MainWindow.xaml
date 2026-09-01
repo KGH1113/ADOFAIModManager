@@ -39,6 +39,9 @@
                 <NavigationViewItem Content="{Binding Localization[Nav_Install], Mode=OneWay}" Tag="install">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Download" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="{Binding Localization[Nav_Catalog], Mode=OneWay}" Tag="catalog">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Find" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="{Binding Localization[Nav_Mods], Mode=OneWay}" Tag="mods">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Library" /></NavigationViewItem.Icon>
                 </NavigationViewItem>

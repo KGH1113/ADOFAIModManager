@@ -1,5 +1,6 @@
 using ADOFAIModManager.Windows.Infrastructure.Installation;
 using ADOFAIModManager.Windows.Services;
+using ADOFAIModManager.Windows.Infrastructure.Catalog;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using Windows.ApplicationModel.Activation;
@@ -16,6 +17,7 @@ public partial class App : Application
 
     protected override async void OnLaunched(WinUILaunchActivatedEventArgs args)
     {
+        CatalogDownloadStorage.CleanupAll();
         if (UserInstallation.HandleMaintenanceArguments())
         {
             Exit();

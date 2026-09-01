@@ -10,6 +10,10 @@ using NativeUmm.Infrastructure.Storage;
 using ADOFAIModManager.Windows.Application.Localization;
 using ADOFAIModManager.Windows.Infrastructure.Localization;
 using System.Globalization;
+using System.Net;
+using System.Net.Http.Headers;
+using ADOFAIModManager.Windows.Application.Catalog;
+using ADOFAIModManager.Windows.Infrastructure.Catalog;
 
 var locator = new WindowsGameLocator();
 if (locator.Locate(Path.Combine(Path.GetTempPath(), "adofai-does-not-exist")) is not null)
@@ -62,6 +66,8 @@ try
     if (unsupported["Nav_Install"] != "Install")
         throw new InvalidOperationException("Unsupported system culture did not fall back to English.");
 
+    await CheckCatalogAsync(testRoot);
+
     var validZip = Path.Combine(testRoot, "valid.zip");
     using (var archive = ZipFile.Open(validZip, ZipArchiveMode.Create))
     {
@@ -101,10 +107,11 @@ try
     }
     ExpectInvalidArchive(modService, layout, ratioZip, "unsafe compression ratio");
 
-    Console.WriteLine("Windows core checks passed: localization, UMM startup points, layout validation, mod inspection, and ZIP guards.");
+    Console.WriteLine("Windows core checks passed: localization, catalog, Discord parsing, layout validation, mod inspection, and ZIP guards.");
 }
 finally
 {
+    CatalogDownloadStorage.CleanupAll();
     if (Directory.Exists(testRoot))
         Directory.Delete(testRoot, recursive: true);
 }
@@ -125,5 +132,139 @@ static void ExpectInvalidArchive(FileModService modService, GameInstallation lay
     }
     catch (InvalidOperationException ex) when (!ex.Message.Contains("was accepted", StringComparison.Ordinal))
     {
+    }
+}
+
+static async Task CheckCatalogAsync(string testRoot)
+{
+    var endpoint = new Uri("https://catalog.example/mods");
+    var json = """
+        [
+          {"id":"old","name":"Timing Helper","cachedUsername":"Alice","description":"Editor tools","uploadedTimestamp":10,"parsedDownload":"https://example.com/old.zip"},
+          {"id":"hidden","name":"Hidden","uploadedTimestamp":30,"hideFromSearch":true,"parsedDownload":"https://example.com/hidden.zip"},
+          {"id":"new","name":"New Mod","uploadedTimestamp":20,"parsedDownload":"https://example.com/new.zip"}
+        ]
+        """;
+    using var fetchClient = new HttpClient(new StubHandler(request => Response(request, Encoding.UTF8.GetBytes(json), "application/json")));
+    var service = new ModCatalogClient(fetchClient, endpoint);
+    var mods = await service.FetchModsAsync();
+    if (mods.Select(mod => mod.Id).SequenceEqual(["new", "old"]) is false)
+        throw new InvalidOperationException("Catalog filtering or newest-first sorting failed.");
+    if (!mods[1].Matches("alice") || !mods[1].Matches("EDITOR"))
+        throw new InvalidOperationException("Catalog author and description search failed.");
+
+    var zip = new RemoteMod { Id = "zip", Name = "Zip", ParsedDownload = "https://example.com/mod.ZIP" };
+    var github = new RemoteMod { Id = "github", Name = "GitHub", ParsedDownload = "https://github.com/a/b/releases/tag/v1" };
+    var youtube = new RemoteMod { Id = "youtube", Name = "YouTube", ParsedDownload = "https://youtu.be/example" };
+    var ambiguous = new RemoteMod { Id = "unknown", Name = "Unknown", ParsedDownload = "https://example.com/download?id=1" };
+    if (zip.Action != RemoteModAction.DownloadAndInstall || github.Action != RemoteModAction.OpenWebsite
+        || youtube.Action != RemoteModAction.OpenWebsite || ambiguous.Action != RemoteModAction.DownloadAndInspect)
+        throw new InvalidOperationException("Catalog URL action classification failed.");
+
+    var zipBytes = new byte[] { 0x50, 0x4b, 0x03, 0x04, 0x00 };
+    using var downloadClient = new HttpClient(new StubHandler(request =>
+    {
+        var response = Response(request, zipBytes, "application/zip");
+        response.RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://cdn.example/final.zip");
+        return response;
+    }));
+    var downloader = new ModCatalogClient(downloadClient);
+    var downloaded = await downloader.DownloadAsync(zip);
+    if (!File.Exists(downloaded) || !ModCatalogClient.HasZipSignature(downloaded))
+        throw new InvalidOperationException("A valid catalog ZIP was not retained.");
+    CatalogDownloadStorage.RemoveOwnedFile(downloaded);
+
+    using var htmlClient = new HttpClient(new StubHandler(request => Response(request, Encoding.UTF8.GetBytes("<html></html>"), "text/html")));
+    await ExpectCatalogErrorAsync(new ModCatalogClient(htmlClient), ambiguous, ModCatalogError.NotZip);
+
+    using var oversizedClient = new HttpClient(new StubHandler(request =>
+    {
+        var response = Response(request, zipBytes, "application/zip");
+        response.Content.Headers.ContentLength = ModCatalogClient.MaximumDownloadBytes + 1;
+        return response;
+    }));
+    await ExpectCatalogErrorAsync(new ModCatalogClient(oversizedClient), zip, ModCatalogError.FileTooLarge);
+
+    using var actualSizeClient = new HttpClient(new StubHandler(request =>
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            RequestMessage = request,
+            Content = new StreamContent(new MemoryStream(zipBytes))
+        };
+        response.Content.Headers.ContentLength = null;
+        return response;
+    }));
+    await ExpectCatalogErrorAsync(new ModCatalogClient(actualSizeClient, maximumDownloadBytes: 4), zip, ModCatalogError.FileTooLarge);
+
+    using var insecureRedirectClient = new HttpClient(new StubHandler(request =>
+    {
+        var response = Response(request, zipBytes, "application/zip");
+        response.RequestMessage = new HttpRequestMessage(HttpMethod.Get, "http://cdn.example/mod.zip");
+        return response;
+    }));
+    await ExpectCatalogErrorAsync(new ModCatalogClient(insecureRedirectClient), zip, ModCatalogError.InsecureUrl);
+
+    using var httpErrorClient = new HttpClient(new StubHandler(request => new HttpResponseMessage(HttpStatusCode.NotFound)
+    {
+        RequestMessage = request
+    }));
+    await ExpectCatalogErrorAsync(new ModCatalogClient(httpErrorClient), zip, ModCatalogError.InvalidResponse);
+
+    using var networkClient = new HttpClient(new StubHandler(_ => throw new HttpRequestException("offline")));
+    try
+    {
+        await new ModCatalogClient(networkClient).DownloadAsync(zip);
+        throw new InvalidOperationException("Catalog network failure was accepted.");
+    }
+    catch (HttpRequestException) { }
+
+    using var cancellation = new CancellationTokenSource();
+    cancellation.Cancel();
+    try
+    {
+        await downloader.DownloadAsync(zip, cancellationToken: cancellation.Token);
+        throw new InvalidOperationException("Cancelled catalog download completed.");
+    }
+    catch (OperationCanceledException) { }
+
+    var external = Path.Combine(testRoot, "external.zip");
+    File.WriteAllBytes(external, zipBytes);
+    CatalogDownloadStorage.RemoveOwnedFile(external);
+    if (!File.Exists(external)) throw new InvalidOperationException("Catalog cleanup removed an external file.");
+
+    var blocks = DiscordMessageParser.Parse("## Features\n- **Fast** loading\n> Safe\n1. First\n2. Second\n-# note\nName | Value\n--- | ---\nA | B\n---\n```cs\ncode\n```");
+    if (blocks is not [DiscordHeading, DiscordBulletList, DiscordQuote, DiscordOrderedList,
+        DiscordSubtext, DiscordTable, DiscordDivider, DiscordCodeBlock])
+        throw new InvalidOperationException("Discord message blocks were not parsed correctly.");
+    var inline = DiscordMessageParser.ParseInline("[Site](https://example.com) https://adofai.gg `safe` ~~old~~ __line__ ||spoiler||");
+    if (!inline.Any(item => item.Link is not null) || !inline.Any(item => item.Code)
+        || !inline.Any(item => item.Strikethrough) || !inline.Any(item => item.Underline)
+        || !inline.Any(item => item.Spoiler))
+        throw new InvalidOperationException("Discord inline formatting was not parsed correctly.");
+}
+
+static HttpResponseMessage Response(HttpRequestMessage request, byte[] body, string mediaType) => new(HttpStatusCode.OK)
+{
+    RequestMessage = request,
+    Content = new ByteArrayContent(body) { Headers = { ContentType = new MediaTypeHeaderValue(mediaType) } }
+};
+
+static async Task ExpectCatalogErrorAsync(ModCatalogClient client, RemoteMod mod, ModCatalogError expected)
+{
+    try
+    {
+        await client.DownloadAsync(mod);
+        throw new InvalidOperationException($"Catalog error {expected} was not raised.");
+    }
+    catch (ModCatalogException exception) when (exception.Error == expected) { }
+}
+
+sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> response) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(response(request));
     }
 }

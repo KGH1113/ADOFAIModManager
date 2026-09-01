@@ -1,0 +1,142 @@
+<Page
+    x:Class="ADOFAIModManager.Windows.Views.CatalogPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="Page_Loaded">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Padding="32,28,32,20" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Spacing="6">
+                <TextBlock Text="{Binding Localization[Catalog_Title], Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock Text="{Binding Localization[Catalog_Subtitle], Mode=OneWay}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+            <Button Grid.Column="1" Click="Refresh_Click" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                    <TextBlock Text="{Binding Localization[Catalog_Refresh], Mode=OneWay}" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="340" />
+                <ColumnDefinition Width="1" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid>
+                <Grid Visibility="{Binding ResultsVisibility, Mode=OneWay}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBox Margin="20,12" PlaceholderText="{Binding Localization[Catalog_SearchPlaceholder], Mode=OneWay}"
+                             Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <ListView Grid.Row="1" ItemsSource="{Binding VisibleMods}" SelectedItem="{Binding SelectedMod, Mode=TwoWay}"
+                              SelectionMode="Single" Padding="12,0,12,16">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Padding="10,8" Spacing="4" MinHeight="60">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding Version}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                        <TextBlock Text="{Binding CachedUsername}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <StackPanel Grid.Row="1" Margin="24" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Visibility="{Binding SearchEmptyVisibility, Mode=OneWay}">
+                        <FontIcon Glyph="&#xE721;" FontSize="28" />
+                        <TextBlock Text="{Binding Localization[Catalog_NoSearchResults], Mode=OneWay}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Localization[Catalog_TryAnotherSearch], Mode=OneWay}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding LoadingVisibility, Mode=OneWay}">
+                    <ProgressRing IsActive="True" />
+                    <TextBlock Text="{Binding Localization[Catalog_Loading], Mode=OneWay}" />
+                </StackPanel>
+                <StackPanel Margin="28" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding LoadErrorVisibility, Mode=OneWay}">
+                    <FontIcon Glyph="&#xE783;" FontSize="28" />
+                    <TextBlock Text="{Binding LoadError}" TextWrapping="Wrap" TextAlignment="Center" />
+                    <Button Content="{Binding Localization[Catalog_Retry], Mode=OneWay}" Click="Refresh_Click" HorizontalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Margin="28" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding EmptyVisibility, Mode=OneWay}">
+                    <FontIcon Glyph="&#xE721;" FontSize="28" />
+                    <TextBlock Text="{Binding Localization[Catalog_NoMods], Mode=OneWay}" FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Column="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+            <Grid Grid.Column="2">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10"
+                            Visibility="{Binding NoSelectionVisibility, Mode=OneWay}">
+                    <FontIcon Glyph="&#xE8F1;" FontSize="32" />
+                    <TextBlock Text="{Binding Localization[Catalog_SelectMod], Mode=OneWay}" />
+                </StackPanel>
+
+                <ScrollViewer Visibility="{Binding DetailVisibility, Mode=OneWay}">
+                    <StackPanel Padding="40,28,40,36" Spacing="20" MaxWidth="720" HorizontalAlignment="Left">
+                        <Image x:Name="PreviewImage" MaxWidth="520" MaxHeight="240" Stretch="Uniform"
+                               HorizontalAlignment="Left" Visibility="Collapsed" />
+                        <TextBlock Text="{Binding SelectedMod.Name}" Style="{ThemeResource TitleTextBlockStyle}"
+                                   TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <TextBlock Text="{Binding SelectedMod.Version}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{Binding SelectedMod.CachedUsername}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{Binding SelectedUploadedDate}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+
+                        <Button Visibility="{Binding DownloadButtonVisibility, Mode=OneWay}" Click="PrimaryAction_Click"
+                                Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE896;" FontSize="15" />
+                                <TextBlock Text="{Binding Localization[Catalog_DownloadInstall], Mode=OneWay}" />
+                            </StackPanel>
+                        </Button>
+                        <StackPanel Visibility="{Binding WebsiteButtonVisibility, Mode=OneWay}" Spacing="7">
+                            <Button Click="PrimaryAction_Click" HorizontalAlignment="Left"
+                                    ToolTipService.ToolTip="{Binding Localization[Catalog_WebsiteTooltip], Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE8A7;" FontSize="15" />
+                                    <TextBlock Text="{Binding Localization[Catalog_GetWebsite], Mode=OneWay}" />
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Text="{Binding Localization[Catalog_OpensBrowser], Mode=OneWay}" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <StackPanel Visibility="{Binding DownloadingVisibility, Mode=OneWay}" Orientation="Horizontal" Spacing="10">
+                            <ProgressRing IsActive="True" Width="18" Height="18" />
+                            <TextBlock Text="{Binding DownloadProgressText}" VerticalAlignment="Center" />
+                            <Button Content="{Binding Localization[Common_Cancel], Mode=OneWay}" Click="CancelDownload_Click" />
+                        </StackPanel>
+
+                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                        <StackPanel x:Name="DescriptionPanel" Spacing="12" />
+                    </StackPanel>
+                </ScrollViewer>
+                <InfoBar Margin="20" VerticalAlignment="Bottom" IsOpen="{Binding HasDownloadError, Mode=OneWay}"
+                         Severity="Error" Title="{Binding Localization[Error_Title], Mode=OneWay}"
+                         Message="{Binding DownloadError}" CloseButtonClick="DownloadError_CloseButtonClick" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

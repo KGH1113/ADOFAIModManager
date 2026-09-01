@@ -22,4 +22,19 @@ internal sealed class WindowsWorkspaceShell : IWorkspaceShell
             UseShellExecute = true
         });
     }
+
+    public bool OpenWebsite(Uri uri)
+    {
+        if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            return false;
+        try
+        {
+            System.Diagnostics.Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

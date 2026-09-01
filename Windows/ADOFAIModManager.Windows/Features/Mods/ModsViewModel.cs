@@ -51,7 +51,7 @@ internal sealed class ModsViewModel : ObservableObject
         return preview;
     }
 
-    public async Task InstallModAsync(ModImportPreview preview)
+    public async Task<bool> InstallModAsync(ModImportPreview preview)
     {
         await session.RunGameActionAsync("Activity_InstallMod", layout =>
         {
@@ -59,6 +59,7 @@ internal sealed class ModsViewModel : ObservableObject
             return Task.CompletedTask;
         });
         if (!session.HasError && RefreshRequested is not null) await RefreshRequested();
+        return !session.HasError;
     }
 
     public async Task SetModEnabledAsync(ModViewItem mod, bool enabled)

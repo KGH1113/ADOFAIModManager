@@ -18,5 +18,8 @@
     <Compile Include="..\ADOFAIModManager.Windows\ViewModels\*.cs" Link="ViewModels\%(Filename)%(Extension)" />
     <Compile Include="..\ADOFAIModManager.Windows\Features\**\*.cs" Link="Features\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\ADOFAIModManager.Windows\Infrastructure\**\*.cs" Link="Infrastructure\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\ADOFAIModManager.Windows\Views\DiscordMessageRenderer.cs" Link="Views\DiscordMessageRenderer.cs" />
+    <Compile Include="..\ADOFAIModManager.Windows\Views\ModImportWorkflow.cs" Link="Views\ModImportWorkflow.cs" />
+    <Compile Include="..\ADOFAIModManager.Windows\Views\CatalogPage.xaml.cs" Link="Views\CatalogPage.xaml.cs" />
   </ItemGroup>
 </Project>

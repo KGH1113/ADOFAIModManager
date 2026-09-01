@@ -3,6 +3,7 @@ using ADOFAIModManager.Windows.Infrastructure.Localization;
 using ADOFAIModManager.Windows.Infrastructure.Logs;
 using ADOFAIModManager.Windows.Infrastructure.Steam;
 using ADOFAIModManager.Windows.Infrastructure.Shell;
+using ADOFAIModManager.Windows.Infrastructure.Catalog;
 using ADOFAIModManager.Windows.Services;
 using ADOFAIModManager.Windows.ViewModels;
 using NativeUmm.Infrastructure.Installation;
@@ -28,11 +29,18 @@ internal static class CompositionRoot
             new FileModService(log, appData),
             log,
             appData);
+        var workspace = new WindowsWorkspaceShell();
+        var catalogClient = new HttpClient(new HttpClientHandler
+        {
+            AllowAutoRedirect = true,
+            MaxAutomaticRedirections = 10
+        });
         return new MainViewModel(
             gameService,
             localization,
             settings,
-            new WindowsWorkspaceShell(),
-            new WindowsLogReader(localization));
+            workspace,
+            new WindowsLogReader(localization),
+            new ModCatalogClient(catalogClient));
     }
 }

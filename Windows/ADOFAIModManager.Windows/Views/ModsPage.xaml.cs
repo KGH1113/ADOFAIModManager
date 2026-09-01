@@ -13,8 +13,10 @@ namespace ADOFAIModManager.Windows.Views;
 public sealed partial class ModsPage : Page
 {
     private ModsViewModel ViewModel => (ModsViewModel)DataContext;
-    internal ModsPage(ModsViewModel viewModel)
+    private readonly ModImportWorkflow importWorkflow;
+    internal ModsPage(ModsViewModel viewModel, ModImportWorkflow importWorkflow)
     {
+        this.importWorkflow = importWorkflow;
         InitializeComponent();
         DataContext = viewModel;
     }
@@ -32,27 +34,7 @@ public sealed partial class ModsPage : Page
 
     internal async Task ImportPathAsync(string path)
     {
-        if (!Path.GetExtension(path).Equals(".zip", StringComparison.OrdinalIgnoreCase))
-            return;
-        var preview = await ViewModel.InspectModAsync(path);
-        if (preview is null)
-            return;
-
-        var version = string.IsNullOrWhiteSpace(preview.Version)
-            ? ViewModel.Localization["Mods_VersionUnknown"]
-            : ViewModel.Localization.Format("Mods_Version", preview.Version);
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = ViewModel.Localization.Format(
-                preview.AlreadyInstalled ? "Mods_ConfirmReplace" : "Mods_ConfirmAdd", preview.Name),
-            Content = $"{version}\n{preview.Id}",
-            PrimaryButtonText = ViewModel.Localization[preview.AlreadyInstalled ? "Mods_Replace" : "Mods_Add"],
-            CloseButtonText = ViewModel.Localization["Common_Cancel"],
-            DefaultButton = ContentDialogButton.Primary
-        };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-            await ViewModel.InstallModAsync(preview);
+        await importWorkflow.ImportAsync(path, XamlRoot, deleteWhenFinished: false);
     }
 
     private async void ModToggle_Click(object sender, RoutedEventArgs e)
