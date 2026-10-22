@@ -35,7 +35,7 @@
         "zustand": "^5.0.0",
       },
       "devDependencies": {
-        "@biomejs/biome": "^2.4.15",
+        "@biomejs/biome": "2.5.14",
         "@tailwindcss/vite": "^4.1.17",
         "@testing-library/react": "^16.3.0",
         "@testing-library/user-event": "^14.6.1",

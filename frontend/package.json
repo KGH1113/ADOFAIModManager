@@ -7,8 +7,8 @@
     "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "bun run typecheck && biome check --reporter=concise src && bun run test",
-    "format": "biome check --write src",
+    "check": "bun run typecheck && biome check --reporter=concise .. && bun run test",
+    "format": "biome check --write ..",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 1421 --strictPort"
   },
@@ -36,7 +36,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
+    "@biomejs/biome": "2.5.14",
     "@tailwindcss/vite": "^4.1.17",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
