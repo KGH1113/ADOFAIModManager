@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "bun run typecheck && biome check src && bun run test",
+    "check": "bun run typecheck && biome check --reporter=concise src && bun run test",
     "format": "biome check --write src",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 1421 --strictPort"
