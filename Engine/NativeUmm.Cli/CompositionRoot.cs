@@ -1,4 +1,9 @@
 using NativeUmm.Cli.Platform.Mac;
+using NativeUmm.Cli.Platform.Windows;
+using NativeUmm.Cli.Platform.Linux;
+using NativeUmm.Cli.Platform;
+using NativeUmm.Application.Abstractions;
+using NativeUmm.Infrastructure.Presets;
 using NativeUmm.Cli.Protocol;
 using NativeUmm.Infrastructure.Installation;
 using NativeUmm.Infrastructure.Logging;
@@ -14,13 +19,19 @@ internal static class CompositionRoot
     private static EngineRequestHandler BuildRequestHandler()
     {
         var log = new BufferedOperationLog();
-        var appData = AppDataPaths.ForMacOS();
-        var locator = new MacGameLocator();
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
+            throw new PlatformNotSupportedException("ADOFAI Mod Manager supports macOS, Windows and Linux.");
+        var appData = OperatingSystem.IsWindows() ? AppDataPaths.ForWindows()
+            : OperatingSystem.IsLinux() ? AppDataPaths.ForLinux() : AppDataPaths.ForMacOS();
+        IGameLocator locator = OperatingSystem.IsWindows() ? new WindowsGameLocator()
+            : OperatingSystem.IsLinux() ? new LinuxGameLocator() : new MacGameLocator();
         return new EngineRequestHandler(
             locator,
-            locator,
+            (IArchitectureReader)locator,
             new DnlibUmmInstaller(log, appData),
             new FileModService(log, appData),
-            log);
+            log,
+            new GameProcessProbe(),
+            new ModPresetService());
     }
 }

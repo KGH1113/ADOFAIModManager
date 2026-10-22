@@ -300,6 +300,7 @@ internal static class ModManager
             var count = ExtractMod(zip, descriptor.SourceDirectory, staging);
             if (Directory.Exists(target))
             {
+                PreserveSettings(target, staging);
                 backup = Path.Combine(appData.RemovedMods,
                     $"{descriptor.Id}_{DateTime.Now:yyyyMMdd_HHmmss}_replaced");
                 MoveDirectory(target, backup);
@@ -314,6 +315,23 @@ internal static class ModManager
             if (backup.Length > 0 && Directory.Exists(backup) && !Directory.Exists(target))
                 MoveDirectory(backup, target);
             throw;
+        }
+    }
+
+    private static void PreserveSettings(string source, string destination)
+    {
+        if (new DirectoryInfo(source).LinkTarget is not null)
+            throw new InvalidOperationException("Linked mod directories are not supported.");
+        foreach (var name in new[] { "Settings.json", "Setting.json", "Setting.xml", "UpdateSettings.json" })
+        {
+            foreach (var suffix in new[] { "", ".amm-backup" })
+            {
+                var path = Path.Combine(source, name + suffix);
+                if (!File.Exists(path)) continue;
+                if (new FileInfo(path).LinkTarget is not null || (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidOperationException("Linked mod settings are not supported.");
+                File.Copy(path, Path.Combine(destination, name + suffix), overwrite: true);
+            }
         }
     }
 

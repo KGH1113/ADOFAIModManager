@@ -1,0 +1,50 @@
+name: Desktop
+on:
+  push:
+  pull_request:
+jobs:
+  desktop:
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+            target: aarch64-apple-darwin
+            bundles: app
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,appimage
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf clang zlib1g-dev libfuse2
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun run check:engine
+      - run: bun run prepare:desktop
+        env:
+          AMM_TARGET: ${{ matrix.target }}
+      - name: Check bundled engine protocol
+        shell: bash
+        run: python3 scripts/test-native-engine.py "src-tauri/binaries/UMMInstallerEngine-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}"
+      - run: bun run check:desktop
+      - run: bun run build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.target }}
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/

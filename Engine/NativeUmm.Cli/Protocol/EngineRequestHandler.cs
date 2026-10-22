@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -7,6 +8,8 @@ using NativeUmm.Application.Abstractions;
 using NativeUmm.Domain.Games;
 using NativeUmm.Domain.Installation;
 using NativeUmm.Domain.Mods;
+using NativeUmm.Infrastructure.Games;
+using NativeUmm.Infrastructure.Presets;
 
 namespace NativeUmm.Cli.Protocol;
 
@@ -15,7 +18,9 @@ internal sealed class EngineRequestHandler(
     IArchitectureReader architectureReader,
     IUmmInstaller installer,
     IModService modService,
-    IOperationLog log)
+    IOperationLog log,
+    IGameProcessProbe processProbe,
+    ModPresetService presets)
 {
     public string Handle(string requestJson)
     {
@@ -28,6 +33,10 @@ internal sealed class EngineRequestHandler(
         var urls = new List<string>();
         bool forcePayload;
         bool? enabled;
+        string? presetKind;
+        bool[] presetValues;
+        int[] keyBindings;
+        int keyViewerStyle;
 
         using (var doc = JsonDocument.Parse(requestJson))
         {
@@ -43,6 +52,13 @@ internal sealed class EngineRequestHandler(
                 (e.ValueKind == JsonValueKind.True || e.ValueKind == JsonValueKind.False)
                 ? e.GetBoolean()
                 : null;
+            presetKind = root.TryGetProperty("presetKind", out var pk) ? pk.GetString() : null;
+            presetValues = root.TryGetProperty("presetValues", out var pv) && pv.ValueKind == JsonValueKind.Array
+                ? pv.EnumerateArray().Select(value => value.GetBoolean()).ToArray() : [];
+            keyBindings = root.TryGetProperty("keyBindings", out var kb) && kb.ValueKind == JsonValueKind.Array
+                ? kb.EnumerateArray().Select(value => value.GetInt32()).ToArray() : [];
+            keyViewerStyle = root.TryGetProperty("keyViewerStyle", out var ks) && ks.ValueKind == JsonValueKind.Number
+                ? ks.GetInt32() : 10;
             if (root.TryGetProperty("urls", out var arr) && arr.ValueKind == JsonValueKind.Array)
                 foreach (var item in arr.EnumerateArray())
                 {
@@ -56,9 +72,13 @@ internal sealed class EngineRequestHandler(
         var layout = gameLocator.Locate(string.IsNullOrWhiteSpace(gamePath) ? null : gamePath);
         if (layout is null)
             return BuildResponse(null, null, null, null, detected: false,
-                error: "A Dance of Fire and Ice was not found. Select the game .app.");
+                error: "A Dance of Fire and Ice was not found. Select the game application or folder.");
 
         var bundledVersion = BundledVersion(payloadDir);
+        if (action is "install" or "remove" or "restore" or "installmod" or "installmods" or "setmodenabled" or "uninstallmod" or "restoremod" or "removemod" or "savepreset" or "onboardingsetup" or "savejrpkeys")
+        {
+            if (processProbe.IsRunning()) throw new InvalidOperationException("game_running");
+        }
 
         switch (action)
         {
@@ -109,7 +129,30 @@ internal sealed class EngineRequestHandler(
                     modService.Remove(layout, modPath);
                 return BuildResponse(layout, installer.ReadStatus(layout), bundledVersion, modService.List(layout), detected: true, error: null);
             case "logtail":
-                return BuildLogTail(layout);
+                return BuildLogTail(Path.Combine(layout.ManagerPath, "Log.txt"), 400);
+            case "gamelog":
+                var gameLogPath = OperatingSystem.IsMacOS()
+                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Logs", "7th Beat Games", "A Dance of Fire and Ice", "Player.log")
+                    : OperatingSystem.IsLinux()
+                        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config", "unity3d", "7th Beat Games", "A Dance of Fire and Ice", "Player.log")
+                        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow", "7th Beat Games", "A Dance of Fire and Ice", "Player.log");
+                return BuildLogTail(gameLogPath, 30);
+            case "onboardingsetup":
+                new OnboardingSetupService().Apply(modService.List(layout), presetKind ?? "");
+                return BuildResponse(layout, installer.ReadStatus(layout), bundledVersion, modService.List(layout), detected: true, error: null);
+            case "jrpkeys":
+            case "savejrpkeys":
+                var setup = new OnboardingSetupService();
+                var bindings = action == "savejrpkeys"
+                    ? setup.SaveKeys(modService.List(layout), keyBindings, keyViewerStyle)
+                    : setup.LoadKeys(modService.List(layout));
+                return BuildKeyBindings(bindings);
+            case "preset":
+            case "savepreset":
+                var mod = modService.List(layout).FirstOrDefault(m => m.Installed && m.Id.Equals(modId, StringComparison.OrdinalIgnoreCase))
+                    ?? throw new InvalidDataException("Install the mod before changing its settings.");
+                if (action == "savepreset") presets.Save(mod, presetKind ?? "", presetValues);
+                return BuildPreset(presets.Load(mod, presetKind ?? ""));
             default:
                 return BuildResponse(layout, installer.ReadStatus(layout), bundledVersion, modService.List(layout), detected: true, error: $"Unknown action: {action}");
         }
@@ -126,6 +169,7 @@ internal sealed class EngineRequestHandler(
             w.WriteStartObject();
             w.WriteBoolean("ok", error is null);
             w.WriteBoolean("detected", detected);
+            w.WriteBoolean("gameRunning", processProbe.IsRunning());
             if (error is not null)
                 w.WriteString("error", error);
             if (bundledVersion is not null)
@@ -140,6 +184,9 @@ internal sealed class EngineRequestHandler(
                 w.WriteString("modsPath", layout.ModsPath);
                 w.WriteString("processArch", RuntimeInformation.ProcessArchitecture.ToString());
                 w.WriteString("gameArch", SafeArch(layout));
+                var branch = SteamBranchReader.Read(layout.GameRoot);
+                if (branch.Branch is not null) w.WriteString("steamBranch", branch.Branch);
+                w.WriteBoolean("alphaInstalled", branch.AlphaInstalled);
             }
             if (status is not null)
             {
@@ -197,13 +244,18 @@ internal sealed class EngineRequestHandler(
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
-    private static string BuildLogTail(GameInstallation layout)
+    private static string BuildLogTail(string logPath, int lineCount)
     {
-        var logPath = Path.Combine(layout.ManagerPath, "Log.txt");
         var exists = File.Exists(logPath);
-        var text = exists
-            ? string.Join("\n", File.ReadLines(logPath).TakeLast(400))
-            : "";
+        var text = "";
+        if (exists)
+        {
+            using var stream = new FileStream(logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            stream.Seek(Math.Max(0, stream.Length - 1024 * 1024), SeekOrigin.Begin);
+            using var reader = new StreamReader(stream);
+            if (stream.Position > 0) reader.ReadLine();
+            text = string.Join("\n", reader.ReadToEnd().TrimEnd('\r', '\n').Split('\n').TakeLast(lineCount));
+        }
 
         var buffer = new ArrayBufferWriter<byte>();
         using (var w = new Utf8JsonWriter(buffer))
@@ -213,9 +265,50 @@ internal sealed class EngineRequestHandler(
             w.WriteBoolean("detected", true);
             w.WriteBoolean("logExists", exists);
             w.WriteString("logText", text);
+            w.WriteString("logPath", logPath);
             w.WriteEndObject();
         }
 
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    private static string BuildPreset(bool[] values)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteBoolean("ok", true);
+            writer.WriteBoolean("detected", true);
+            writer.WriteStartArray("preset");
+            foreach (var value in values) writer.WriteBooleanValue(value);
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    private static string BuildKeyBindings(JrpKeyBindings bindings)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteBoolean("ok", true);
+            writer.WriteBoolean("detected", true);
+            writer.WriteStartObject("keyBindings");
+            writer.WriteNumber("style", bindings.Style);
+            writer.WriteStartObject("layouts");
+            foreach (var (style, keys) in bindings.Layouts)
+            {
+                writer.WriteStartArray(style.ToString(CultureInfo.InvariantCulture));
+                foreach (var key in keys) writer.WriteNumberValue(key);
+                writer.WriteEndArray();
+            }
+            writer.WriteEndObject();
+            writer.WriteEndObject();
+            writer.WriteEndObject();
+        }
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 

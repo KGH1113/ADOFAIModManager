@@ -140,7 +140,10 @@ public sealed class MacGameLocator : IGameLocator, IArchitectureReader
     private static IEnumerable<string> CandidatePaths(string? requestedPath)
     {
         if (!string.IsNullOrWhiteSpace(requestedPath))
+        {
             yield return requestedPath;
+            yield break;
+        }
 
         yield return "~/Library/Application Support/Steam/steamapps/common/A Dance of Fire and Ice";
         yield return "~/Library/Application Support/com.valvesoftware.Steam/steamapps/common/A Dance of Fire and Ice";

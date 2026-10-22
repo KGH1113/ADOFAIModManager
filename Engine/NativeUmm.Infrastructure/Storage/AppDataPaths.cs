@@ -24,9 +24,18 @@ public sealed class AppDataPaths : IAppDataPaths
         return new AppDataPaths(root);
     }
 
-    public static AppDataPaths ForWindows() => new(Path.Combine(
+    public static AppDataPaths ForWindows() => new(Environment.GetEnvironmentVariable("ADOFAI_MOD_MANAGER_DATA") ?? Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "ADOFAIModManager", "Data"));
+
+    public static AppDataPaths ForLinux()
+    {
+        var overridePath = Environment.GetEnvironmentVariable("ADOFAI_MOD_MANAGER_DATA");
+        var dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+        if (string.IsNullOrWhiteSpace(dataHome) || !Path.IsPathRooted(dataHome))
+            dataHome = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share");
+        return new AppDataPaths(overridePath ?? Path.Combine(dataHome, "ADOFAIModManager"));
+    }
 
     private static string Ensure(string path)
     {

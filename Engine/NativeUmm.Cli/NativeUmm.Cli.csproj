@@ -8,11 +8,11 @@
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
     <SelfContained>true</SelfContained>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <InvariantGlobalization>false</InvariantGlobalization>
     <StripSymbols>true</StripSymbols>
     <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
-    <SupportedOSPlatformVersion>14.0</SupportedOSPlatformVersion>
-    <AppleMinOSVersion>14.0</AppleMinOSVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::IsOSPlatform('OSX'))">14.0</SupportedOSPlatformVersion>
+    <AppleMinOSVersion Condition="$([MSBuild]::IsOSPlatform('OSX'))">14.0</AppleMinOSVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NativeUmm.Infrastructure\NativeUmm.Infrastructure.csproj" />

@@ -1,0 +1,22 @@
+{
+  "name": "adofai-mod-manager",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.11",
+  "workspaces": ["frontend"],
+  "scripts": {
+    "dev": "bun scripts/desktop.mjs dev",
+    "build": "bun scripts/desktop.mjs build",
+    "prepare:desktop": "bun scripts/prepare-desktop.mjs",
+    "build:linux": "bun scripts/desktop.mjs build --bundles deb,appimage",
+    "frontend:dev": "bun run --cwd frontend dev",
+    "frontend:build": "bun run --cwd frontend build",
+    "check": "bun run --cwd frontend check",
+    "test": "bun run --cwd frontend test",
+    "check:engine": "dotnet run --project Engine/NativeUmm.Checks -p:NuGetAudit=false",
+    "check:desktop": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "tauri": "tauri"
+  },
+  "devDependencies": { "@tauri-apps/cli": "^2.10.0" }
+}

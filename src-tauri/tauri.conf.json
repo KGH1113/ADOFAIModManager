@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ADOFAI Mod Manager",
+  "version": "0.2.0",
+  "identifier": "com.kgh.ADOFAIModManager",
+  "build": {
+    "beforeDevCommand": "bun run frontend:dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "bun run frontend:build",
+    "frontendDist": "../frontend/dist"
+  },
+  "app": {
+    "windows": [{ "label": "main", "title": "ADOFAI Mod Manager", "width": 1120, "height": 780, "minWidth": 1120, "minHeight": 780, "maxWidth": 1120, "maxHeight": 780, "resizable": false, "maximizable": false, "fullscreen": false, "titleBarStyle": "Overlay", "hiddenTitle": true, "backgroundColor": "#090d16", "dragDropEnabled": true }],
+    "security": { "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data:; font-src 'self'; media-src 'self' asset: http://asset.localhost; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; frame-src 'none'" }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "externalBin": ["binaries/UMMInstallerEngine"],
+    "resources": { "resources/UMMPayload/": "UMMPayload/", "../Resources/ThirdPartyNotices/": "ThirdPartyNotices/" },
+    "fileAssociations": [{ "ext": ["zip"], "name": "UMM Mod Archive", "role": "Viewer" }],
+    "macOS": { "minimumSystemVersion": "14.0" },
+    "windows": { "nsis": { "displayLanguageSelector": true, "languages": ["Korean", "English", "SimpChinese"] } }
+  }
+}

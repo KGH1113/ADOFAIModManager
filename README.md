@@ -1,69 +1,83 @@
 # ADOFAI Mod Manager
 
-ADOFAI 전용 Unity Mod Manager 설치기 MVP입니다. SwiftUI 네이티브 앱과
-.NET Native AOT 설치 엔진을 하나의 Universal macOS 앱으로 묶습니다.
-사용자 Mac에는 .NET, Mono, Homebrew, Xcode, Rosetta가 필요하지 않습니다.
-
-Windows용 WinUI 3 MVP도 `Windows` 폴더에 함께 있습니다. Steam 게임 탐색,
-UMM과 모드 관리, ZIP 연결 프로그램, 로그, 사용자 단위 설치를 제공하며
-자동 업데이트는 포함하지 않습니다. 빌드와 배포 방법은 [Windows/README.md](Windows/README.md)를 보세요.
+ADOFAI용 Unity Mod Manager 설치 및 모드 관리 앱입니다. macOS·Windows·Linux에서 하나의 **Tauri 2 + React + TypeScript** 앱을 사용하며, 설치 작업은 번들에 포함된 .NET Native AOT 엔진이 수행합니다. 설치된 앱을 실행하는 사용자에게 Bun이나 .NET SDK는 필요하지 않습니다.
 
 ## 기능
 
-- Steam 라이브러리에서 ADOFAI 자동 탐색 및 수동 앱 선택
-- UMM Assembly 방식 설치, 복구 설치, 후크 제거, 원본 복원
-- 새 Mac에서도 바로 설치할 수 있도록 UMM 0.32.5 호환 payload 포함
-- Harmony 2.3.6 ABI와 JALib 호환성을 유지하면서 MonoMod.Core 1.3.3의 Apple Silicon ARM64 detour를 사용하는 net48 빌드 포함
-- `System.Runtime 5+`를 참조하는 잘못된 Harmony payload는 자동 제외
-- 모드 ZIP 검사 및 안전한 설치, 교체 전 기존 모드 자동 보관
-- 앱 창 전체 드래그 앤 드롭과 Finder `다음으로 열기` 지원
-- 모드 켜기/끄기, 복구 가능한 제거, Mods 폴더 열기
-- 게임 `Player.log` 최근 30줄과 UMM 실제 로그 표시
-- 한국어, 영어, 간체 중국어 UI와 앱 내부 언어 선택
-- macOS 14 이상, Apple Silicon/Intel Universal 빌드
-- macOS 26 Liquid Glass와 macOS 14/15 Material 폴백
+- 처음 실행 시 웰컴, 모딩 경험 선택, Steam alpha 안내, UMM 설치, 게임 내 설정 안내, 추천 모드 설치와 Key4·Key8·Key10·Key12·Key16 키 배치 설정
+- 기존 남색·파랑·분홍 디자인과 앱 아이콘 유지. 궤도 그래픽에는 앱 아이콘을 넣지 않음
+- Motion의 포인터 반응·스프링과 GSAP의 단계별 등장·설치 완료 연출
+- Steam 라이브러리 자동 탐색, 수동 게임 선택, UMM 설치·복구·후크 제거·원본 복원
+- 모드 카탈로그 검색, ZIP 검사·설치, 활성화, 삭제, 폴더 열기
+- TUF API 기반 모드 탐색, 추천·의존성 모드 다운로드, 설치된 모드의 업데이트 확인과 다운로드
+- ZIP 드래그 앤 드롭 및 파일 연결, 설치 전에 게임과 모드 정보 확인
+- 게임 로그와 UMM 로그, 한국어·영어·간체 중국어, 동작 줄이기 지원
+- 메인 화면 하단 메뉴에서 웰컴 다시 열기
 
-## 빌드
+## 개발
 
-요구 환경은 Xcode 26, .NET 10 SDK, Python 3.10 이상입니다. 이 요구사항은
-앱을 빌드하는 개발자에게만 적용됩니다.
+개발 환경에는 Bun 1.3.11, Rust stable, .NET 10 SDK와 각 플랫폼의 네이티브 빌드 도구가 필요합니다. macOS는 Xcode Command Line Tools, Windows는 C++ 데스크톱 빌드 도구와 WebView2를 사용합니다. macOS 최소 버전은 14입니다.
+
+Linux CI 기준은 Ubuntu 22.04 x64입니다. WebKitGTK 4.1과 .NET Native AOT용 Clang·zlib가 필요합니다. Ubuntu에서는 다음 패키지를 설치하세요. 다른 배포판은 [Tauri 개발 환경 문서](https://v2.tauri.app/start/prerequisites/#linux)를 참고하세요.
 
 ```sh
-./scripts/build-app.sh
-./scripts/build-dmg.sh
-./scripts/test-engine.sh
+sudo apt-get update
+sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf clang zlib1g-dev libfuse2
 ```
 
-번들된 `0Harmony.dll`을 재생성하려면 네트워크 연결이 가능한 개발 환경에서
-`./scripts/build-harmony-compat.sh`를 실행합니다. 이 스크립트는 Harmony
-`v2.3.6.0` 소스를 고정해 빌드하되 MonoMod.Core만 `1.3.3`으로 올립니다.
-어셈블리 버전은 구형 모드 호환성을 위해 `2.3.6.0`으로 유지됩니다.
+```sh
+bun install --frozen-lockfile
+bun run dev
+```
 
-결과물:
+`dev`는 설치 엔진과 리소스를 준비한 뒤 Tauri를 실행합니다. 프론트엔드만 확인하려면 `bun run prepare:desktop`, `bun run frontend:dev`를 실행하고 개발 주소에 `?preview=1`을 붙입니다. 이 프리뷰는 명시적으로 표시된 샘플 데이터만 사용하며 실제 게임에 접근하지 않습니다. 배포 번들에는 샘플 API가 포함되지 않습니다.
 
-- `build/ADOFAI Mod Manager.app`
-- `dist/ADOFAI-Mod-Manager-0.1.0.dmg`
+## 빌드와 검증
 
-현재 스크립트는 테스트 배포를 위해 ad-hoc 서명합니다. 정식 배포 전에는
-Developer ID Application 서명, 공증, staple 절차로 교체해야 합니다.
-`build-dmg.sh`는 첫 실행에 프로젝트 전용 도구 폴더를 만들고 무료 빌드
-의존성인 `dmgbuild 1.6.7`을 설치합니다. Finder AppleScript를 사용하지 않고
-배경, 112pt 아이콘, 창 크기와 위치를 DMG에 직접 기록하므로 macOS 26에서도
-동일한 설치 화면을 생성합니다.
+```sh
+bun run check
+bun run check:engine
+bun run prepare:desktop
+bun run check:desktop
+bun run build --bundles app              # macOS
+bun run build --bundles app,dmg          # macOS 배포 이미지
+bun run build --bundles nsis             # Windows에서 실행
+bun run build:linux                     # Linux에서 .deb와 AppImage 생성
+```
 
-Developer ID 없이 배포한 빌드는 처음 실행할 때 macOS가 차단합니다. 사용자는
-앱을 한 번 실행한 뒤 `시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기`에서
-해당 앱을 승인해야 합니다.
+macOS 앱은 `build/ADOFAI Mod Manager.app`에 복사됩니다. 원본 번들과 플랫폼별 설치 파일은 `src-tauri/target/release/bundle/`에 생성됩니다. `--target`을 명시하면 `src-tauri/target/<target>/release/bundle/`에 생성됩니다. 각 플랫폼의 빌드는 해당 OS에서 실행하세요. macOS ARM64·x64, Windows x64·ARM64, Linux GNU x64·ARM64 엔진 타깃을 지원합니다. Linux ARM64에서는 `bun run build --target aarch64-unknown-linux-gnu --bundles deb`를 사용하세요. [AppImage 도구는 ARM 교차 컴파일을 지원하지 않습니다.](https://v2.tauri.app/distribute/appimage/)
 
-## 안전 동작
+CI는 macOS ARM64, Windows x64, Linux x64에서 프론트엔드·설치 엔진·Rust 테스트 및 앱 패키징을 수행합니다. Linux 결과물은 `.deb`와 AppImage입니다. 로컬 macOS 빌드는 개발용 서명이며, 배포용 Developer ID 서명과 공증은 별도로 구성합니다.
 
-설치 엔진은 `UnityEngine.CoreModule.dll`을 교체하기 전에 타임스탬프
-백업을 만들며, UMM이 사용하는 `.original_` 원본도 유지합니다. 모드
-사용자가 휴지통 버튼으로 제거한 모드는 즉시 영구 삭제합니다.
-외부 ZIP은 설치 전에 `Info.json`, 파일 수, 압축 해제 용량, 심볼릭 링크와
-경로 이탈 여부를 확인합니다. 기존 모드를 교체할 때도 이전 폴더를 복구
-폴더로 옮긴 다음 새 모드를 배치하지만, 이 교체 백업은 모드 목록에 표시하지 않습니다.
+Linux 게임 탐색은 일반 Steam·Flatpak Steam·추가 Steam 라이브러리와 수동 선택을 지원하며, 네이티브 Unity Mono 및 Proton의 Windows 게임 폴더를 인식합니다. 실제 게임 실행 및 모드 호환성은 별도 검증이 필요합니다.
 
-이 프로젝트는 Unity Mod Manager 및 7th Beat Games의 공식 제품이 아닌
-커뮤니티 도구입니다. 포팅한 Unity Mod Manager 코어와 제3자 라이선스는
-앱의 `ThirdPartyNotices`에 포함됩니다.
+## 구조
+
+- `frontend/`: React 화면, 기능별 API·스키마·모델·상태·훅과 테스트
+- `src-tauri/`: 데스크톱 앱, 플랫폼 연동, 다운로드 및 번들 설정
+- `Engine/`: .NET 설치 엔진, 플랫폼별 게임 탐색, 모드 관리 및 검증
+- `Resources/`: 앱 아이콘 원본, UMM 페이로드와 라이선스 고지
+- `scripts/`: 공통 앱 실행·리소스 준비·엔진 검증과 Harmony 페이로드 유지보수
+
+## 스크립트
+
+- `desktop.mjs`: `bun run dev`와 `bun run build`의 공통 진입점
+- `prepare-desktop.mjs`: 대상 OS의 Native AOT 엔진, 설치 페이로드, 아이콘 준비
+- `test-native-engine.py`: 번들 엔진의 JSON 프로토콜·프리셋·모드 가져오기·삭제 검증. 실제 게임 대신 임시 폴더를 사용합니다. `python3 scripts/test-native-engine.py <engine-path>`로 실행하며 CI에서도 사용합니다.
+- `build-harmony-compat.sh`: macOS ARM64 호환 Harmony 페이로드를 다시 만드는 유지보수 도구. 일반 앱 빌드에는 필요하지 않습니다.
+
+## 설치 엔진
+
+모드 탐색과 온보딩 추천·의존성 설치는 모두 `https://api.tuforums.com/v2/mods`에서 조회한 목록과 버전을 사용합니다. ZIP은 TUF의 `/v2/mods/{slug}/{version}/download` 엔드포인트를 통해 설치할 때 내려받습니다. TUF 조회 실패는 오류로 표시하며, 하드코딩된 목록이나 제작자의 직접 다운로드 주소로 대체하지 않습니다. 개발용 브라우저 미리보기는 별도의 mock 데이터를 사용합니다.
+
+모드 리스트의 **업데이트 확인** 버튼은 TUF 목록의 버전과 설치 버전을 비교하며, 새 버전도 TUF 다운로드 엔드포인트로 받습니다. 다운로드 파일은 `.zip` 임시 파일로 저장하고 실제 ZIP 서명·메타데이터를 검사한 뒤 설치합니다. 로컬 ZIP 가져오기와 드래그 앤 드롭도 지원합니다.
+
+UMM 0.32.5 호환 payload와 Harmony 2.3.6 ABI/MonoMod.Core 1.3.3 ARM64 호환 빌드를 포함합니다. 엔진은 게임 실행 중 변경을 차단하고, 게임 어셈블리와 모드 교체 전에 백업합니다. 모드 삭제는 확인 후 영구 삭제됩니다. ZIP은 메타데이터·파일 수·압축 해제 용량·심볼릭 링크·경로 이탈을 검사합니다.
+
+새로 설치하는 JipperResourcePack 1.5.2.0·1.5.3.0, KeyboardChatterBlocker 0.1.2, TUFHelper 3.1.1, Enhanced Countdown 0.2.0–0.2.3에는 추천 기본값을 적용합니다. JRP와 KCB의 키 제한 프로필을 동기화하고, JRP가 함께 활성화되어 있으면 TUF의 중복 표시를 끕니다. 기존 설정의 키 배치·스타일·다운로드 경로와 알 수 없는 항목을 보존하고, 첫 설정 수정 전에 `.amm-backup`을 만듭니다. 재설치와 업데이트에서도 설정 파일을 유지합니다. JRP 설치 다음 화면에서 Key4·Key8·Key10·Key12·Key16을 고르고 키뷰어 배치에 맞춰 입력을 편집할 수 있습니다. Key4는 양손 중지·검지, Key8은 엄지를 제외한 손가락을 사용합니다. 입력 대기 중 해당 손가락이 내려갔다가 등록 후 올라옵니다. 엄지 키 두 개는 같은 엄지 동작을 사용하고, 손날 키는 호버 색만 표시합니다. 선택한 스타일과 키 배열만 저장하고 다른 스타일의 배열과 발·Ghost·사용자 지정 키 텍스트를 보존합니다. 기존 Key20 설정은 보존하되 편집 화면에서는 Key16을 선택합니다. JRP의 JALib과 TUFHelperLite의 ADOFAI IPC 의존성도 자동으로 설치합니다.
+
+모드 목록의 별도 프리셋 편집은 ADOFAI Tweaks 2.9.3과 Jipper Key Viewer 1.7.2를 지원합니다. Jipper Key Viewer 프리셋은 게임에서 생성한 기존 프로필을 사용합니다.
+
+이 프로젝트는 Unity Mod Manager 및 7th Beat Games의 공식 제품이 아닌 커뮤니티 도구입니다. 제3자 라이선스는 앱의 `ThirdPartyNotices`에 포함됩니다.
+
+Linux 앱 데이터는 `$XDG_DATA_HOME/ADOFAIModManager` 또는 `~/.local/share/ADOFAIModManager`에 저장됩니다. 모든 플랫폼에서 `ADOFAI_MOD_MANAGER_DATA`로 엔진 데이터 경로를 지정할 수 있습니다.
