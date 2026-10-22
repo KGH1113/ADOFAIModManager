@@ -12,6 +12,7 @@
     "build:linux": "bun scripts/desktop.mjs build --bundles deb,appimage",
     "frontend:dev": "bun run --cwd frontend dev",
     "frontend:build": "bun run --cwd frontend build",
+    "typecheck": "bun run --cwd frontend typecheck",
     "check": "bun run --cwd frontend check",
     "test": "bun run --cwd frontend test",
     "check:engine": "dotnet run --project Engine/NativeUmm.Checks -p:NuGetAudit=false",
