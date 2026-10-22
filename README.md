@@ -18,6 +18,8 @@ ADOFAI용 Unity Mod Manager 설치 및 모드 관리 앱입니다. macOS·Window
 
 개발 환경에는 Bun 1.3.11, Rust stable, .NET 10 SDK와 각 플랫폼의 네이티브 빌드 도구가 필요합니다. macOS는 Xcode Command Line Tools, Windows는 C++ 데스크톱 빌드 도구와 WebView2를 사용합니다. macOS 최소 버전은 14입니다.
 
+프론트엔드 테스트는 Node.js 22.12 이상으로 실행합니다. Windows에서 사용할 수 있는 Node.js가 없으면 테스트 실행기가 공식 Node.js 22 배포본을 내려받아 SHA-256을 검증하고 `%LOCALAPPDATA%/ADOFAIModManager/tools/`에 캐시합니다. 최초 다운로드에는 네트워크가 필요하며 소스 작업 폴더는 변경하지 않습니다. 직접 설치한 실행 파일은 `AMM_NODE_BINARY`로 지정할 수 있습니다.
+
 Linux CI 기준은 Ubuntu 22.04 x64입니다. WebKitGTK 4.1과 .NET Native AOT용 Clang·zlib가 필요합니다. Ubuntu에서는 다음 패키지를 설치하세요. 다른 배포판은 [Tauri 개발 환경 문서](https://v2.tauri.app/start/prerequisites/#linux)를 참고하세요.
 
 ```sh

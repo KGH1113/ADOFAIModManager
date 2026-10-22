@@ -5,6 +5,29 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { normalizeCheckoutLineEndings } from "./biome.mjs";
+import { supportsNode, windowsArchive } from "./run-vitest.mjs";
+
+test("requires a Node.js version supported by Vite", () => {
+  for (const version of ["", "1.3.11", "20.19.0", "22.11.0"])
+    assert.equal(supportsNode(version), false);
+  for (const version of ["22.12.0", "24.0.0", "26.0.0\n"])
+    assert.equal(supportsNode(version), true);
+});
+
+test("selects a checksummed official archive for each Windows architecture", () => {
+  const checksum = "a".repeat(64);
+  const manifest = `${checksum}  node-v22.22.2-win-x64.zip\r\n${checksum}  node-v22.22.2-win-arm64.zip\r\n`;
+  for (const arch of ["x64", "arm64"]) {
+    assert.deepEqual(windowsArchive(manifest, arch), {
+      checksum,
+      filename: `node-v22.22.2-win-${arch}.zip`,
+      version: "v22.22.2",
+    });
+  }
+  assert.throws(() => windowsArchive("", "x64"));
+  assert.throws(() => windowsArchive(manifest, "ia32"));
+  assert.throws(() => windowsArchive(`bad  node-v22.22.2-win-x64.zip`, "x64"));
+});
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), "amm-checkout-"));
