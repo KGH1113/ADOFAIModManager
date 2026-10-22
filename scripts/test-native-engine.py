@@ -54,7 +54,12 @@ with tempfile.TemporaryDirectory(prefix="amm-native-check-") as temporary:
     assert json.loads(jrp_settings.read_text())["Feature"]["KeyViewer"]["Setting"]["AutoSetupKeyLimit"] is True
     request("onboardingsetup", presetKind="tuf-overlay")
     tuf_settings = mods / "TUFHelper/Settings.json"
-    assert json.loads(tuf_settings.read_text())["ShowTUFHelperOverlayer"] is False
+    tuf_config = json.loads(tuf_settings.read_text())
+    assert tuf_config["ShowTUFHelperOverlayer"] is True, tuf_config
+    tuf_elements = tuf_config["IngameElementsSettings"]
+    assert tuf_elements["Leaderboard"]["IsShowed"] is True, tuf_elements
+    for element in ["Progress", "Combo", "Judgements", "CurrentBPM", "RealBPM"]:
+        assert tuf_elements[element]["IsShowed"] is False, (element, tuf_elements[element])
     missing = subprocess.run([str(engine)], input=json.dumps({"protocolVersion": 1, "gamePath": str(root / "Missing.app"), "action": "status"}), text=True, capture_output=True, check=True)
     assert not json.loads(missing.stdout)["detected"], "An explicit missing game must not fall back to Steam."
     archive = root / "sample.zip"
