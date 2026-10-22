@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "check": "bun run typecheck && biome check --reporter=concise .. && bun run test",
-    "format": "biome check --write ..",
+    "test": "bun test ./scripts/biome-checks.mjs && vitest run",
+    "biome": "bun scripts/biome.mjs",
+    "check": "bun run typecheck && bun run biome check --reporter=concise .. && bun run test",
+    "format": "bun run biome check --write ..",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 1421 --strictPort"
   },
