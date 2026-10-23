@@ -42,6 +42,11 @@ async fn catalog_fetch() -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
+async fn catalog_details(slug: String) -> Result<serde_json::Value, String> {
+    downloads::catalog_details(&slug).await
+}
+
+#[tauri::command]
 async fn download_mod(
     state: State<'_, Runtime>,
     url: String,
@@ -144,6 +149,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             engine_request,
             catalog_fetch,
+            catalog_details,
             download_mod,
             cancel_download,
             discard_download,

@@ -115,6 +115,41 @@ pub async fn catalog() -> Result<serde_json::Value, String> {
     Ok(serde_json::Value::Array(mods))
 }
 
+fn catalog_detail_url(slug: &str) -> Result<reqwest::Url, String> {
+    if slug.is_empty()
+        || slug.len() > 256
+        || !slug
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+    {
+        return Err("Invalid catalog mod identifier.".into());
+    }
+    let mut url = https_url(CATALOG_URL)?;
+    url.path_segments_mut()
+        .map_err(|_| "Invalid catalog URL.")?
+        .push(slug);
+    Ok(url)
+}
+
+pub async fn catalog_details(slug: &str) -> Result<serde_json::Value, String> {
+    let mut response = client()?
+        .get(catalog_detail_url(slug)?)
+        .timeout(Duration::from_secs(15))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?;
+    let mut data = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+        if data.len() + chunk.len() > 8 * 1024 * 1024 {
+            return Err("Catalog response is too large.".into());
+        }
+        data.extend_from_slice(&chunk);
+    }
+    serde_json::from_slice(&data).map_err(|_| "Catalog detail response is invalid.".into())
+}
+
 pub async fn download(url: &str) -> Result<TempPath, String> {
     let mut response = client()?
         .get(platform_download_url(url, std::env::consts::OS)?)
@@ -167,6 +202,25 @@ fn is_zip(bytes: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn detail_urls_stay_within_the_public_mod_endpoint() {
+        assert_eq!(
+            catalog_detail_url("enhanced-countdown").unwrap().as_str(),
+            "https://api.tuforums.com/v2/mods/enhanced-countdown"
+        );
+        for slug in [
+            "",
+            "..",
+            "../tags",
+            "mod/download",
+            "mod?secret=x",
+            "mod#fragment",
+            "https://example.com",
+        ] {
+            assert!(catalog_detail_url(slug).is_err());
+        }
+    }
+
     #[test]
     fn tuf_downloads_target_the_current_platform_and_preserve_other_query_values() {
         for platform in ["windows", "macos", "linux"] {
@@ -242,6 +296,17 @@ mod tests {
             mods.iter().map(|m| m["slug"].as_str().unwrap()).collect();
         assert_eq!(mods.len(), slugs.len());
         println!("Fetched {} unique TUF mods across all pages", mods.len());
+    }
+
+    #[tokio::test]
+    #[ignore = "requires the live public TUF API"]
+    async fn live_tuf_details_include_historical_releases() {
+        let data = catalog_details("keyboardchatterblocker").await.unwrap();
+        let item = &data["mod"];
+        assert_eq!(item["slug"], "keyboardchatterblocker");
+        let versions = item["versions"].as_array().unwrap();
+        assert!(versions.iter().any(|version| version["version"] == "0.1.2"));
+        assert!(versions.len() > 1);
     }
 
     #[tokio::test]

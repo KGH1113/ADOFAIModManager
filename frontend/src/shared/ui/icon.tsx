@@ -5,10 +5,13 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
   ArrowUpRight01Icon,
+  Calendar03Icon,
   Cancel01Icon,
   CheckmarkCircle01Icon,
+  Copy01Icon,
   Delete02Icon,
   Download01Icon,
+  FavouriteIcon,
   File01Icon,
   Folder01Icon,
   Globe02Icon,
@@ -24,10 +27,15 @@ import {
   Settings01Icon,
   SlidersHorizontalIcon,
   Tick01Icon,
+  UserIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 const icons = {
+  copy: Copy01Icon,
+  calendar: Calendar03Icon,
+  heart: FavouriteIcon,
+  user: UserIcon,
   add: Add01Icon,
   down: ArrowDown01Icon,
   package: Package01Icon,

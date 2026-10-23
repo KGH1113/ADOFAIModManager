@@ -81,6 +81,52 @@ describe("native API adapters", () => {
     await expect(api.catalog.list()).rejects.toThrow("TUF unavailable");
     expect(invoke).toHaveBeenCalledExactlyOnceWith("catalog_fetch");
   });
+  it("loads version history and downloads the selected historical version through TUF", async () => {
+    const invoke = vi.fn(async (command: string) =>
+      command === "catalog_details"
+        ? {
+            mod: {
+              id: 1,
+              slug: "chatter",
+              name: "Chatter",
+              version: "0.1.3",
+              versions: [
+                { id: 1, version: "0.1.3", releasedAt: "2026-10-22" },
+                { id: 2, version: "0.1.2", releasedAt: "2026-09-01", notes: "Earlier release" },
+              ],
+            },
+          }
+        : "historical-token",
+    );
+    const api = createProductionApi(client(invoke));
+    const detail = await api.catalog.details("chatter");
+    expect(invoke).toHaveBeenCalledExactlyOnceWith("catalog_details", { slug: "chatter" });
+    const historical = detail.versions[1];
+    expect(historical.version).toBe("0.1.2");
+    expect(await api.catalog.download(historical.url, "history-request")).toBe("historical-token");
+    expect(invoke).toHaveBeenLastCalledWith("download_mod", {
+      url: "https://api.tuforums.com/v2/mods/chatter/0.1.2/download",
+      requestId: "history-request",
+    });
+  });
+  it("rejects mismatched or malformed detail responses and preserves detail errors", async () => {
+    const mismatched = createProductionApi(
+      client(async () => ({ mod: { id: 1, slug: "wrong", name: "Wrong" } })),
+    );
+    await expect(mismatched.catalog.details("requested")).rejects.toThrow("different mod");
+    const malformed = createProductionApi(
+      client(async () => ({
+        mod: { id: 1, slug: "mod", name: "Mod", versions: [{ version: "1.0" }] },
+      })),
+    );
+    await expect(malformed.catalog.details("mod")).rejects.toThrow();
+    const unavailable = createProductionApi(
+      client(async () => {
+        throw new Error("Detail unavailable");
+      }),
+    );
+    await expect(unavailable.catalog.details("mod")).rejects.toThrow("Detail unavailable");
+  });
   it("uses TUF versions for recommendations and their updates without adding pinned mods", async () => {
     const invoke = vi.fn(async (command: string) =>
       command === "catalog_fetch"

@@ -2,6 +2,20 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
 afterEach(cleanup);
+// Radix Select uses browser pointer capture and scrolling APIs absent in jsdom.
+for (const [name, implementation] of Object.entries({
+  hasPointerCapture: (): boolean => false,
+  setPointerCapture: (): void => {},
+  releasePointerCapture: (): void => {},
+  scrollIntoView: (): void => {},
+})) {
+  if (!(name in HTMLElement.prototype)) {
+    Object.defineProperty(HTMLElement.prototype, name, {
+      configurable: true,
+      value: implementation,
+    });
+  }
+}
 vi.spyOn(document, "hasFocus").mockReturnValue(true);
 // Node 26 exposes a disabled native localStorage; install a per-test DOM store.
 const values = new Map<string, string>();

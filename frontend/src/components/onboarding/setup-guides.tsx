@@ -86,9 +86,9 @@ export function ModSettingsGuide({ next }: { next(): void }) {
   const { locked } = useManager();
   const [pressed, setPressed] = useState(0);
   const syncShortcut = useCallback((time: number) => {
-    // Source video is 60fps: hold Ctrl at 126F, add F10 at 143F,
-    // then release the chord after a brief 24-frame hold.
-    setPressed(time < 126 / 60 || time >= 167 / 60 ? 0 : time < 143 / 60 ? 1 : 2);
+    // Source video is 60fps. The preview starts at 144F and UMM opens at 177F:
+    // lead with Ctrl at 160F, press F10 with the menu, then hold for 24 frames.
+    setPressed(time < 160 / 60 || time >= 201 / 60 ? 0 : time < 177 / 60 ? 1 : 2);
   }, []);
   return (
     <div className="mod-settings-guide">
@@ -97,6 +97,7 @@ export function ModSettingsGuide({ next }: { next(): void }) {
           <PreviewVideo
             kind="modSettings"
             name={t("onboarding.modSettings.video")}
+            startTime={144 / 60}
             onMediaTime={syncShortcut}
             fallback={
               <div className="mod-menu-shortcut">

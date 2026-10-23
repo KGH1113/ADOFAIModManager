@@ -13,11 +13,13 @@ export function PreviewVideo({
   name,
   fallback,
   onMediaTime,
+  startTime = 0,
 }: {
   kind: "jrp" | "chatter" | "tufLite" | "tuf" | "modSettings";
   name: string;
   fallback?: ReactNode;
   onMediaTime?: (time: number) => void;
+  startTime?: number;
 }) {
   const { t } = useTranslation();
   const src = videos[`/src/assets/onboarding/${kind}.mp4`];
@@ -61,26 +63,44 @@ export function PreviewVideo({
     player.muted = true;
     player.defaultMuted = true;
     const play = () => {
-      if (active) void player.play().catch(() => {});
-      else player.pause();
+      if (!active) {
+        player.pause();
+        return;
+      }
+      // Wait for metadata before seeking, so the skipped introduction never plays.
+      if (startTime > 0 && player.readyState < 1) return;
+      if (player.currentTime < startTime) player.currentTime = startTime;
+      void player.play().catch(() => {});
     };
+    const start = () => {
+      if (player.currentTime < startTime) player.currentTime = startTime;
+      play();
+    };
+    const repeat = () => {
+      player.currentTime = startTime;
+      play();
+    };
+    player.addEventListener("loadedmetadata", start);
     player.addEventListener("canplay", play);
+    if (startTime > 0) player.addEventListener("ended", repeat);
     play();
     return () => {
+      player.removeEventListener("loadedmetadata", start);
       player.removeEventListener("canplay", play);
+      player.removeEventListener("ended", repeat);
       player.pause();
     };
-  }, [active, src, failed]);
+  }, [active, src, failed, startTime]);
   if ((!src || failed) && fallback) return <>{fallback}</>;
   if (!src) return <div className="preview-video preview-video-empty" aria-hidden="true" />;
   return (
     <div className="preview-video">
       <video
         ref={video}
-        src={src}
-        autoPlay={active}
+        src={startTime > 0 ? `${src}#t=${startTime}` : src}
+        autoPlay={active && startTime === 0}
         muted
-        loop
+        loop={startTime === 0}
         playsInline
         preload="auto"
         onError={() => setFailed(true)}

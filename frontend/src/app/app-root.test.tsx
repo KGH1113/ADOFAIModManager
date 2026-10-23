@@ -178,13 +178,13 @@ describe("desktop user journeys", () => {
     if (!shortcutVideo) throw new Error("Missing mod settings video");
     const keys = document.querySelectorAll(".shortcut-preview kbd");
     for (const [frame, ctrl, f10] of [
-      [125, false, false],
-      [126, true, false],
-      [142, true, false],
-      [143, true, true],
-      [166, true, true],
-      [167, false, false],
-      [0, false, false],
+      [159, false, false],
+      [160, true, false],
+      [176, true, false],
+      [177, true, true],
+      [200, true, true],
+      [201, false, false],
+      [144, false, false],
     ] as const) {
       shortcutVideo.currentTime = frame / 60;
       fireEvent.seeked(shortcutVideo);

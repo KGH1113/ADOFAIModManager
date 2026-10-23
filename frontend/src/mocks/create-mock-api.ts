@@ -1,5 +1,5 @@
 import type { AppApi } from "@/api/app-api";
-import { mapCatalogMod, tufDownloadUrl } from "@/models/catalog/catalog-model";
+import { mapCatalogDetail, mapCatalogMod, tufDownloadUrl } from "@/models/catalog/catalog-model";
 import type { Installation } from "@/models/installation/installation-model";
 import {
   copyKeyLayouts,
@@ -12,7 +12,7 @@ type PreviewMod = RecommendedMod & { version: string };
 const previewVersions: Record<string, string> = {
   jalib: "1.0.0.45 beta45",
   jrp: "1.5.2.0",
-  keyboardchatterblocker: "0.1.2",
+  keyboardchatterblocker: "0.1.3",
   tufhelperlite: "0.1.9",
   tufhelper: "3.1.1",
   "enhanced-countdown": "0.2.3",
@@ -52,8 +52,22 @@ export function createMockApi(): AppApi {
       description: item.name,
       creatorUsername: "Preview",
       sourceUploadedAt: new Date(1_790_000_000_000 - index).toISOString(),
+      isPinned: index < 3,
+      likes: 3 + index,
+      downloadCount: 119 + index * 17,
+      tags: [
+        {
+          id: item.slug === "jalib" ? 6 : 2,
+          name: item.slug === "jalib" ? "Dependency" : "Quality Of Life",
+          color: "#70ff9b",
+        },
+      ],
     }),
   );
+  const historicalItems: PreviewMod[] = ["0.1.2", "0.1.1"].map((version) => ({
+    ...recommendations.chatter,
+    version,
+  }));
   let current: PreviewMod = items[1];
   let keyBindings: JrpKeyBindings = { style: 10, layouts: copyKeyLayouts(defaultKeyLayouts) };
   const archives = new Map<string, PreviewMod>();
@@ -124,8 +138,35 @@ export function createMockApi(): AppApi {
     },
     catalog: {
       list: async () => catalog,
+      details: async (id) => {
+        const item = catalog.find((mod) => mod.id === id);
+        if (!item) throw new Error("Unknown preview mod");
+        const versions = [
+          item.version,
+          ...historicalItems.filter((mod) => mod.slug === id).map((mod) => mod.version),
+        ].map((version, index) => ({
+          id: index + 1,
+          version,
+          notes: index ? `Release ${version}` : "Latest release",
+          releasedAt: new Date(item.uploadedAt - index * 86_400_000).toISOString(),
+          source: "hosted",
+        }));
+        return {
+          ...mapCatalogDetail({
+            id: 1,
+            slug: id,
+            name: item.name,
+            version: item.version,
+            versions,
+            latestVersion: versions[0],
+          }),
+          ...item,
+        };
+      },
       download: async (url) => {
-        const item = items.find((item) => tufDownloadUrl(item.slug, item.version) === url);
+        const item = [...items, ...historicalItems].find(
+          (item) => tufDownloadUrl(item.slug, item.version) === url,
+        );
         if (!item) throw new Error("Unknown preview archive");
         const token = crypto.randomUUID();
         archives.set(token, item);
