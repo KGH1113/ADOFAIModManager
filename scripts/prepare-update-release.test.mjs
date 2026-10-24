@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { createManifest, validateVersions } from "./prepare-update-release.mjs";
+import { verifyManifest } from "./verify-update-release.mjs";
 
 const files = [
   "mac/ADOFAI Mod Manager.app.tar.gz",
@@ -8,6 +9,27 @@ const files = [
   "linux/manager.AppImage",
 ].flatMap((path) => [path, `${path}.sig`]);
 describe("update release manifest", () => {
+  it("validates draft placeholder URLs and published URLs without accepting renamed assets", () => {
+    const manifest = createManifest("0.3.0", "v0.3.0", "owner/repo", files, () => "sig");
+    for (const isDraft of [true, false]) {
+      const assets = Object.values(manifest.platforms).flatMap(({ url }) => {
+        const name = new URL(url).pathname.split("/").at(-1);
+        return [
+          {
+            name,
+            state: "uploaded",
+            size: 100,
+            url: isDraft ? url.replace("/v0.3.0/", "/untagged-test/") : url,
+          },
+          { name: `${name}.sig`, size: 10 },
+        ];
+      });
+      const release = { tagName: "v0.3.0", isDraft, assets };
+      expect(verifyManifest(manifest, release)).toBe(3);
+      expect(() => verifyManifest(manifest, { ...release, assets: assets.slice(1) })).toThrow();
+      expect(() => verifyManifest(manifest, { ...release, tagName: "v0.4.0" })).toThrow();
+    }
+  });
   it("assembles all supported targets using GitHub-safe names and signature content", () => {
     const manifest = createManifest(
       "0.3.0",

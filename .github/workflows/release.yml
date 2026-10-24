@@ -116,5 +116,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > uploaded-release.json
+          gh release view "$RELEASE_TAG" --json tagName,isDraft,assets > uploaded-release.json
           bun scripts/verify-update-release.mjs release-assets/latest.json uploaded-release.json
