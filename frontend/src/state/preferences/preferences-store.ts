@@ -52,7 +52,13 @@ export const usePreferences = create<Preferences>()(
           onboarding: { step: "welcome", readyBack: "experience" },
         }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
-      initialize: () => set((state) => ({ hydrated: true, welcomeOpen: !state.completed })),
+      initialize: () =>
+        set({
+          hydrated: true,
+          welcomeOpen: true,
+          settingsOpen: false,
+          onboarding: { step: "welcome", readyBack: "experience" },
+        }),
     }),
     {
       name: "adofai-mod-manager.preferences.v1",

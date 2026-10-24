@@ -1,5 +1,5 @@
 import { Dialog as Primitive } from "radix-ui";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "./icon";
 export function Dialog({
@@ -9,6 +9,7 @@ export function Dialog({
   description,
   children,
   locked = false,
+  autoFocusTitle = false,
   className = "",
 }: {
   open: boolean;
@@ -17,9 +18,11 @@ export function Dialog({
   description?: string;
   children: ReactNode;
   locked?: boolean;
+  autoFocusTitle?: boolean;
   className?: string;
 }) {
   const { t } = useTranslation();
+  const titleRef = useRef<HTMLHeadingElement>(null);
   return (
     <Primitive.Root
       open={open}
@@ -29,8 +32,22 @@ export function Dialog({
     >
       <Primitive.Portal>
         <Primitive.Overlay className="dialog-overlay" />
-        <Primitive.Content className={`dialog-content ${className}`}>
-          <Primitive.Title className="dialog-title">{title}</Primitive.Title>
+        <Primitive.Content
+          className={`dialog-content ${className}`}
+          onOpenAutoFocus={(event) => {
+            if (autoFocusTitle) {
+              event.preventDefault();
+              titleRef.current?.focus();
+            }
+          }}
+        >
+          <Primitive.Title
+            ref={titleRef}
+            tabIndex={autoFocusTitle ? -1 : undefined}
+            className="dialog-title"
+          >
+            {title}
+          </Primitive.Title>
           {description ? (
             <Primitive.Description className="dialog-description">
               {description}

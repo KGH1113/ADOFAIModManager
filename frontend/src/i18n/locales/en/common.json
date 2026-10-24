@@ -1,4 +1,6 @@
 {
+  "onboarding.recommend.installAll": "Install all",
+  "onboarding.recommend.allInstalled": "All installed",
   "setup.destination": "ADOFAI folder",
   "setup.installHere": "Install UMM in this folder to enable mods.",
   "setup.changeFolder": "Change folder…",

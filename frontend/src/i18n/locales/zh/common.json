@@ -1,4 +1,6 @@
 {
+  "onboarding.recommend.installAll": "全部安装",
+  "onboarding.recommend.allInstalled": "已全部安装",
   "setup.destination": "ADOFAI 安装位置",
   "setup.installHere": "在此文件夹中安装 UMM 以启用模组。",
   "setup.changeFolder": "更改游戏文件夹…",

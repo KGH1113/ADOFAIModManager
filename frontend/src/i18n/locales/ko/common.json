@@ -1,4 +1,6 @@
 {
+  "onboarding.recommend.installAll": "모두 설치",
+  "onboarding.recommend.allInstalled": "모두 설치됨",
   "setup.destination": "ADOFAI 설치 위치",
   "setup.installHere": "이 위치에 UMM을 설치해 모드를 사용할 수 있습니다.",
   "setup.changeFolder": "게임 폴더 변경…",

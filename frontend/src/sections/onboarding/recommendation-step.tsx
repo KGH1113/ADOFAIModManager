@@ -14,6 +14,34 @@ import { Icon } from "@/shared/ui/icon";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 
 type Flow = ReturnType<typeof useRecommendations>;
+function InstallAllButton({
+  modKeys,
+  flow,
+}: {
+  modKeys: readonly RecommendationKey[];
+  flow: Flow;
+}) {
+  const { t } = useTranslation();
+  const { game, locked } = useManager();
+  const complete = modKeys.every(
+    (key) =>
+      key !== flow.failed &&
+      game.data?.mods.some(
+        (mod) =>
+          mod.installed && mod.id.toLowerCase() === recommendations[key].installedId.toLowerCase(),
+      ),
+  );
+  return (
+    <Button
+      disabled={locked || !game.data?.installed || game.data.gameRunning || complete}
+      pending={flow.batch}
+      onClick={() => void flow.installAll(modKeys)}
+    >
+      {!flow.batch && <Icon name={complete ? "check" : "download"} size={16} />}
+      {t(complete ? "onboarding.recommend.allInstalled" : "onboarding.recommend.installAll")}
+    </Button>
+  );
+}
 function InstallButton({ modKey, flow }: { modKey: RecommendationKey; flow: Flow }) {
   const { t } = useTranslation();
   const { game, locked } = useManager();
@@ -176,6 +204,7 @@ export function TufStep({ flow, next }: { flow: Flow; next(): void }) {
       </div>
       <Progress flow={flow} />
       <div className="recommendation-continue">
+        <InstallAllButton modKeys={["tuf", "tufLite"]} flow={flow} />
         <Button variant="primary" disabled={locked} onClick={next}>
           {t("onboarding.continue")}
           <Icon name="right" />
@@ -244,6 +273,7 @@ export function MoreModsStep({ flow, next }: { flow: Flow; next(): void }) {
       </div>
       <Progress flow={flow} />
       <div className="recommendation-continue">
+        <InstallAllButton modKeys={moreMods} flow={flow} />
         <Button variant="primary" disabled={locked} onClick={next}>
           {t("onboarding.continue")}
           <Icon name="right" />

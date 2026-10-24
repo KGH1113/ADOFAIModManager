@@ -3,6 +3,7 @@ import { useManager } from "@/app/manager-provider";
 import { Button } from "@/shared/ui/button";
 import { Dialog } from "@/shared/ui/dialog";
 import { Icon } from "@/shared/ui/icon";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { type Language, usePreferences } from "@/state/preferences/preferences-store";
 export function SettingsDialog() {
   const { t } = useTranslation();
@@ -18,23 +19,22 @@ export function SettingsDialog() {
       onOpenChange={setOpen}
       title={t("settings.title")}
       className="settings-dialog"
+      autoFocusTitle
     >
       <div className="settings-sections">
         <section className="settings-row">
           <label htmlFor="settings-language">{t("settings.language")}</label>
-          <div className="settings-select">
-            <select
-              id="settings-language"
-              value={language}
-              onChange={(event) => setLanguage(event.target.value as Language)}
-            >
-              <option value="system">{t("settings.system")}</option>
-              <option value="ko">한국어</option>
-              <option value="en">English</option>
-              <option value="zh">简体中文</option>
-            </select>
-            <Icon name="down" size={18} />
-          </div>
+          <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
+            <SelectTrigger id="settings-language" className="settings-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="settings-select-content">
+              <SelectItem value="system">{t("settings.system")}</SelectItem>
+              <SelectItem value="ko">한국어</SelectItem>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="zh">简体中文</SelectItem>
+            </SelectContent>
+          </Select>
         </section>
         <section className="settings-row">
           <h3>{t("onboarding.settings.welcome")}</h3>

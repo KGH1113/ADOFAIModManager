@@ -43,6 +43,75 @@ function mount(api = createMockApi()) {
   return api;
 }
 describe("desktop user journeys", () => {
+  it.each([false, true])(
+    "starts on welcome after restoring preferences with completed=%s",
+    async (completed) => {
+      const gamePath = "/Preview/ADanceOfFireAndIce.app";
+      localStorage.setItem(
+        "adofai-mod-manager.preferences.v1",
+        JSON.stringify({ state: { completed, gamePath, language: "en" }, version: 1 }),
+      );
+      await usePreferences.persist.rehydrate();
+      mount();
+      expect(await screen.findByRole("heading", { name: "ADOFAI Mod Manager" })).toBeTruthy();
+      expect(usePreferences.getState()).toMatchObject({
+        completed,
+        gamePath,
+        language: "en",
+        welcomeOpen: true,
+        onboarding: { step: "welcome" },
+      });
+      expect(screen.queryByTestId("app-settings")).toBeNull();
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("button", { name: "Continue" }));
+      await screen.findByTestId("experience-returning");
+    },
+  );
+
+  it.each([
+    ["tuf", ["tuf", "tufLite"]],
+    ["more", ["countdown", "calibration", "youtube", "effects"]],
+  ] as const)("installs all remaining mods on the %s screen", async (step, keys) => {
+    const api = createMockApi();
+    await api.installation.execute("/Preview/ADanceOfFireAndIce.app", "install");
+    usePreferences.setState({ onboarding: { step, readyBack: "experience" } });
+    mount(api);
+    const user = userEvent.setup();
+    const first = await screen.findByTestId(`install-${keys[0]}`);
+    await waitFor(() => expect(first.hasAttribute("disabled")).toBe(false));
+    await user.click(first);
+    await waitFor(() => expect(first.textContent).toBe("Installed"));
+    const download = vi.spyOn(api.catalog, "download");
+    const all = screen.getByRole("button", { name: "Install all" });
+    await waitFor(() => expect(all.hasAttribute("disabled")).toBe(false));
+    await user.click(all);
+    await screen.findByRole("button", { name: "All installed" });
+    for (const key of keys)
+      expect(screen.getByTestId(`install-${key}`).textContent).toBe("Installed");
+    expect(download).toHaveBeenCalledTimes(step === "tuf" ? 1 : 4);
+    expect(screen.getByRole("button", { name: "All installed" }).hasAttribute("disabled")).toBe(
+      true,
+    );
+    expect(screen.getByRole("button", { name: "Continue" }).hasAttribute("disabled")).toBe(false);
+  });
+  it("stops install all on failure and retries the remaining TUF mods", async () => {
+    const api = createMockApi();
+    await api.installation.execute("/Preview/ADanceOfFireAndIce.app", "install");
+    const download = vi.spyOn(api.catalog, "download").mockRejectedValueOnce(new Error("offline"));
+    usePreferences.setState({ onboarding: { step: "tuf", readyBack: "experience" } });
+    mount(api);
+    const user = userEvent.setup();
+    const all = await screen.findByRole("button", { name: "Install all" });
+    await waitFor(() => expect(all.hasAttribute("disabled")).toBe(false));
+    await user.click(all);
+    await waitFor(() => expect(useOperations.getState().error).toBe("offline"));
+    expect(download).toHaveBeenCalledTimes(1);
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(all.hasAttribute("disabled")).toBe(false));
+    await user.click(all);
+    await screen.findByRole("button", { name: "All installed" });
+    expect(download).toHaveBeenCalledTimes(3);
+  });
   it("shows both TUF previews and keeps setup details and independent installs available", async () => {
     const api = createMockApi();
     await api.installation.execute("/Preview/ADanceOfFireAndIce.app", "install");
@@ -176,11 +245,34 @@ describe("desktop user journeys", () => {
     expect(usePreferences.getState().completed).toBe(true);
     await user.click(screen.getByTestId("app-settings"));
     await screen.findByRole("dialog", { name: "App settings" });
+    const language = screen.getByRole("combobox", { name: "Language" });
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "App settings" }));
+    expect(document.activeElement).not.toBe(language);
     expect(screen.queryByRole("menu")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Back to welcome" }));
     await screen.findByRole("heading", { name: "ADOFAI Mod Manager" });
     expect(usePreferences.getState().completed).toBe(true);
     expect(document.querySelectorAll(".orbital-artwork img")).toHaveLength(0);
+  });
+  it("changes settings language through the shadcn select with keyboard navigation", async () => {
+    mount();
+    const user = userEvent.setup();
+    await user.keyboard("{Control>},{/Control}");
+    await screen.findByRole("dialog", { name: "App settings" });
+    const language = screen.getByRole("combobox", { name: "Language" });
+    expect(language.getAttribute("data-slot")).toBe("select-trigger");
+    await user.tab();
+    expect(document.activeElement).toBe(language);
+    await user.keyboard(" ");
+    await screen.findByRole("listbox");
+    expect(screen.getAllByRole("option")).toHaveLength(4);
+    await user.keyboard("{Home}{ArrowDown}{Enter}");
+    await waitFor(() => expect(usePreferences.getState().language).toBe("ko"));
+    expect(language.textContent).toContain("한국어");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
   it("installs the new recommendations independently, configures only onboarding installs, and finishes", async () => {
     const api = mount();

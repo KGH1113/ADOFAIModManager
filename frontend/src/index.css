@@ -897,7 +897,7 @@ input[type="checkbox"]:disabled {
   border-color: var(--brand-border);
   background: color-mix(in oklab, var(--card) 96%, var(--primary));
 }
-.catalog-card:focus-within {
+.catalog-card:has(:focus-visible) {
   border-color: var(--ring);
 }
 .catalog-card-heading {
@@ -1853,6 +1853,7 @@ input[type="checkbox"]:disabled {
 }
 .recommendation-continue {
   display: flex;
+  gap: 12px;
   justify-content: flex-end;
   margin-top: 12px;
   padding-block: 4px;
@@ -2472,6 +2473,9 @@ input[type="checkbox"]:disabled {
   letter-spacing: -0.025em;
   line-height: 1.4;
 }
+.dialog-title:focus {
+  outline: none;
+}
 .dialog-description {
   color: var(--muted-foreground);
   font-size: 13px;
@@ -2569,31 +2573,13 @@ input[type="checkbox"]:disabled {
   font-weight: 500;
 }
 .settings-select {
-  position: relative;
   width: 210px;
   max-width: 100%;
-}
-.settings-select select {
-  appearance: none;
-  -webkit-appearance: none;
-  display: block;
-  width: 100%;
-  height: 38px;
-  padding: 0 40px 0 14px;
-  border-radius: 10px;
-  border: 1px solid var(--input);
+  min-height: 38px;
   background: var(--background);
-  color: var(--foreground);
-  font-size: 13px;
-  cursor: pointer;
 }
-.settings-select > svg {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--muted-foreground);
+.settings-select-content {
+  z-index: 72;
 }
 .settings-about {
   padding-top: 24px;
