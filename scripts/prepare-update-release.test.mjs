@@ -8,7 +8,7 @@ const files = [
   "linux/manager.AppImage",
 ].flatMap((path) => [path, `${path}.sig`]);
 describe("update release manifest", () => {
-  it("assembles all supported targets with encoded URLs and signature content", () => {
+  it("assembles all supported targets using GitHub-safe names and signature content", () => {
     const manifest = createManifest(
       "0.3.0",
       "v0.3.0",
@@ -19,7 +19,7 @@ describe("update release manifest", () => {
     expect(Object.keys(manifest.platforms)).toHaveLength(3);
     expect(manifest.platforms["darwin-aarch64"]).toEqual({
       signature: "signature",
-      url: "https://github.com/KGH1113/ADOFAIModManager/releases/download/v0.3.0/ADOFAI%20Mod%20Manager.app.tar.gz",
+      url: "https://github.com/KGH1113/ADOFAIModManager/releases/download/v0.3.0/ADOFAI.Mod.Manager.app.tar.gz",
     });
   });
   it("rejects partial releases, duplicate artifacts, empty signatures and mismatched tags", () => {

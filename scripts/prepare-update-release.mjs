@@ -8,6 +8,12 @@ const targets = {
   "linux-x86_64": ".AppImage",
 };
 
+// GitHub normalizes spaces and special characters in uploaded asset names.
+// Normalize before copying and constructing URLs so the manifest matches exactly.
+export function releaseAssetName(path) {
+  return basename(path).replace(/[^A-Za-z0-9._-]/g, ".");
+}
+
 export function createManifest(version, tag, repository, files, readSignature) {
   if (!/^\d+\.\d+\.\d+$/.test(version) || tag !== `v${version}`) {
     throw new Error("Release tag must match the stable application version (vX.Y.Z).");
@@ -22,7 +28,7 @@ export function createManifest(version, tag, repository, files, readSignature) {
     if (!signature) throw new Error(`Empty signature for ${platform}`);
     platforms[platform] = {
       signature,
-      url: `https://github.com/${repository}/releases/download/${tag}/${encodeURIComponent(basename(artifact))}`,
+      url: `https://github.com/${repository}/releases/download/${tag}/${releaseAssetName(artifact)}`,
     };
   }
   return { version, platforms };
@@ -60,13 +66,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     if (notesFile) manifest.notes = readFileSync(notesFile, "utf8");
     for (const platform of Object.values(manifest.platforms)) {
       const name = decodeURIComponent(new URL(platform.url).pathname.split("/").at(-1));
-      const source = files.find((file) => basename(file) === name);
+      const source = files.find((file) => releaseAssetName(file) === name);
       cpSync(source, join(output, name));
       cpSync(`${source}.sig`, join(output, `${name}.sig`));
     }
     // Include the macOS first-install DMG alongside the updater archive.
     for (const file of files.filter((path) => path.endsWith(".dmg")))
-      cpSync(file, join(output, basename(file)));
+      cpSync(file, join(output, releaseAssetName(file)));
     writeFileSync(join(output, "latest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   }
 }
