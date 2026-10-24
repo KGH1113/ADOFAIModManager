@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useManager } from "@/app/manager-provider";
+import { UpdateStatus } from "@/components/updates/update-provider";
 import { Button } from "@/shared/ui/button";
 import { Dialog } from "@/shared/ui/dialog";
 import { Icon } from "@/shared/ui/icon";
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { type Language, usePreferences } from "@/state/preferences/preferences-store";
 export function SettingsDialog() {
   const { t } = useTranslation();
-  const { locked } = useManager();
+  const { locked, game } = useManager();
   const open = usePreferences((state) => state.settingsOpen);
   const setOpen = usePreferences((state) => state.setSettingsOpen);
   const language = usePreferences((state) => state.language);
@@ -46,9 +47,10 @@ export function SettingsDialog() {
         <section className="settings-about">
           <div className="settings-about-heading">
             <h3>ADOFAI Mod Manager</h3>
-            <small>0.2.0</small>
+            <small>{game.runtime?.version ?? "—"}</small>
           </div>
           <p>{t("settings.aboutHint")}</p>
+          <UpdateStatus settings />
         </section>
       </div>
     </Dialog>

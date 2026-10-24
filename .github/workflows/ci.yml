@@ -1,21 +1,42 @@
-name: Desktop
+name: CI
 on:
   push:
+    branches: ['**']
   pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  desktop:
+  frontend:
+    name: Frontend and release checks
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun run check:release
+      - run: bun run frontend:build
+  native:
+    name: Native checks (${{ matrix.os }})
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-14
             target: aarch64-apple-darwin
-            bundles: app
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            bundles: nsis
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            bundles: deb,appimage
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +44,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf clang zlib1g-dev libfuse2
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev clang zlib1g-dev
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.11
@@ -33,8 +54,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
       - run: bun install --frozen-lockfile
-      - run: bun run check
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - run: bun run check:engine
       - run: bun run prepare:desktop
         env:
@@ -42,9 +67,4 @@ jobs:
       - name: Check bundled engine protocol
         shell: bash
         run: python3 scripts/test-native-engine.py "src-tauri/binaries/UMMInstallerEngine-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}"
-      - run: bun run check:desktop
-      - run: bun run build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: desktop-${{ matrix.target }}
-          path: src-tauri/target/${{ matrix.target }}/release/bundle/
+      - run: cargo test --locked --manifest-path src-tauri/Cargo.toml

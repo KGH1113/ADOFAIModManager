@@ -8,6 +8,19 @@ import { createModsApi } from "./mods/create-mods-api";
 export function createProductionApi(client: DesktopClient): AppApi {
   const engine = createEngineGateway(client);
   return {
+    updates: {
+      check: async () =>
+        z
+          .object({ version: z.string(), notes: z.string() })
+          .nullable()
+          .parse(await client.invoke("check_app_update")),
+      download: async () => {
+        await client.invoke("download_app_update");
+      },
+      install: async () => {
+        await client.invoke("install_app_update");
+      },
+    },
     installation: createInstallationApi(engine),
     mods: createModsApi(engine),
     catalog: createCatalogApi(client),

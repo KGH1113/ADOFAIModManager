@@ -32,6 +32,7 @@ node_modules/
 *.bak
 
 # Signing material and release secrets
+/.local/
 *.p12
 *.pfx
 *.cer

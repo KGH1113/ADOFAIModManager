@@ -75,6 +75,11 @@ export function createMockApi(): AppApi {
   const resolveArchive = (source: { token?: string }) =>
     source.token ? (archives.get(source.token) ?? current) : current;
   return {
+    updates: {
+      check: async () => null,
+      download: async () => {},
+      install: async () => {},
+    },
     installation: {
       load: async () => ({ ...game }),
       execute: async (_, action) => {

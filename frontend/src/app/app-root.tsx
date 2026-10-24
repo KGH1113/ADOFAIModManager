@@ -2,6 +2,7 @@ import { AnimatePresence, MotionConfig } from "motion/react";
 import { useEffect } from "react";
 import { GlobalFeedback } from "@/components/feedback/global-feedback";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
+import { UpdateStatus } from "@/components/updates/update-provider";
 import { usePageActive } from "@/hooks/shared/use-page-active";
 import i18n, { resolveLanguage } from "@/i18n/i18n";
 import { OnboardingPage } from "@/pages/onboarding/onboarding-page";
@@ -41,6 +42,7 @@ export function AppRoot({ preview = false }: { preview?: boolean }) {
           </RouteSurface>
         </AnimatePresence>
         <SettingsDialog />
+        <UpdateStatus />
         <GlobalFeedback />
       </div>
     </MotionConfig>

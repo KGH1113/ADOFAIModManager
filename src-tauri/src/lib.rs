@@ -1,5 +1,6 @@
 mod downloads;
 mod engine;
+mod updates;
 mod window_sizing;
 
 use downloads::Downloads;
@@ -110,8 +111,8 @@ fn reveal_path(app: tauri::AppHandle, path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn runtime_info() -> serde_json::Value {
-    serde_json::json!({ "platform": std::env::consts::OS, "version": env!("CARGO_PKG_VERSION") })
+fn runtime_info(app: tauri::AppHandle) -> serde_json::Value {
+    serde_json::json!({ "platform": std::env::consts::OS, "version": app.package_info().version.to_string() })
 }
 
 #[tauri::command]
@@ -146,6 +147,8 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updates::Updates::default())
         .manage(Runtime::default())
         .invoke_handler(tauri::generate_handler![
             engine_request,
@@ -157,6 +160,9 @@ pub fn run() {
             open_external,
             reveal_path,
             runtime_info,
+            updates::check_app_update,
+            updates::download_app_update,
+            updates::install_app_update,
             take_open_files
         ])
         .setup(|app| {

@@ -9,5 +9,12 @@ export default defineConfig({
   clearScreen: false,
   server: { watch: { ignored: ["**/src-tauri/**", "**/Engine/**"] } },
   build: { target: "es2022" },
-  test: { environment: "jsdom", setupFiles: ["./src/test-setup.ts"], restoreMocks: true },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test-setup.ts"],
+    restoreMocks: true,
+    // Shared runners otherwise contend over the SVG/hand interaction suites.
+    maxWorkers: process.env.CI ? 2 : undefined,
+    testTimeout: process.env.CI ? 15_000 : 5_000,
+  },
 });

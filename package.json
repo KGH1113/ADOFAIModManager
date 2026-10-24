@@ -19,6 +19,7 @@
     "test": "bun run --cwd frontend test",
     "check:engine": "dotnet run --project Engine/NativeUmm.Checks -p:NuGetAudit=false",
     "check:desktop": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "check:release": "bun test scripts/prepare-update-release.test.mjs",
     "tauri": "tauri"
   },
   "devDependencies": {

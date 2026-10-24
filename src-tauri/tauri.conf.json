@@ -20,7 +20,15 @@
     "externalBin": ["binaries/UMMInstallerEngine"],
     "resources": { "resources/UMMPayload/": "UMMPayload/", "../Resources/ThirdPartyNotices/": "ThirdPartyNotices/" },
     "fileAssociations": [{ "ext": ["zip"], "name": "UMM Mod Archive", "role": "Viewer" }],
-    "macOS": { "minimumSystemVersion": "14.0" },
+    "macOS": { "minimumSystemVersion": "14.0", "signingIdentity": "-" },
     "windows": { "nsis": { "displayLanguageSelector": true, "languages": ["Korean", "English", "SimpChinese"] } }
+  },
+  "plugins": {
+    "updater": {
+      "requireSignedVersion": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYxNzAzMzE2Qjc3Qjk3QzcKUldUSGwzdTNGak53WVkyL3ptbUIxZmM1ZHM5VEJNYjR3TFcySzZHM2k5SU1rcTNuZXFqK0IwUlIK",
+      "endpoints": ["https://github.com/KGH1113/ADOFAIModManager/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
   }
 }

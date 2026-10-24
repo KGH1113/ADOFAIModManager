@@ -7,6 +7,7 @@ import { createProductionApi } from "@/api/create-production-api";
 import { AppRoot } from "@/app/app-root";
 import { ManagerProvider } from "@/app/manager-provider";
 import { queryClient } from "@/app/query-client";
+import { UpdateProvider } from "@/components/updates/update-provider";
 import i18n from "@/i18n/i18n";
 import { createTauriClient } from "@/shared/clients/tauri-client";
 import "./index.css";
@@ -36,7 +37,9 @@ async function main() {
       <QueryClientProvider client={queryClient}>
         <ApiProvider api={api}>
           <ManagerProvider>
-            <AppRoot preview={preview} />
+            <UpdateProvider>
+              <AppRoot preview={preview} />
+            </UpdateProvider>
           </ManagerProvider>
         </ApiProvider>
       </QueryClientProvider>

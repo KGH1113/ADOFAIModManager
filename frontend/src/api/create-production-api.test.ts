@@ -17,6 +17,22 @@ function client(invoke: DesktopClient["invoke"]): DesktopClient {
   };
 }
 describe("native API adapters", () => {
+  it("checks, downloads and installs updates through native commands", async () => {
+    const invoke = vi.fn(async (command: string) =>
+      command === "check_app_update" ? { version: "0.3.0", notes: "New version" } : null,
+    );
+    const api = createProductionApi(client(invoke));
+    expect(await api.updates.check()).toEqual({ version: "0.3.0", notes: "New version" });
+    await api.updates.download();
+    await api.updates.install();
+    expect(invoke.mock.calls.map(([command]) => command)).toEqual([
+      "check_app_update",
+      "download_app_update",
+      "install_app_update",
+    ]);
+    const invalid = createProductionApi(client(async () => ({ version: 3 })));
+    await expect(invalid.updates.check()).rejects.toThrow();
+  });
   it("round trips the UMM shortcut through native settings", async () => {
     const ummShortcut = { keyCode: "K", modifiers: 3 };
     const invoke = vi.fn(async () => ({ ok: true, detected: true, ummShortcut }));
