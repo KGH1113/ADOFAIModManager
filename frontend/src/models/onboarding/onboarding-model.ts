@@ -7,6 +7,7 @@ export const onboardingSteps = [
   "jrp",
   "keyBindings",
   "chatter",
+  "tufIntro",
   "tuf",
   "more",
   "ready",

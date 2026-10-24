@@ -8,6 +8,7 @@ import { ExperienceScene } from "@/components/onboarding/experience-scene";
 import { JrpKeysStep } from "@/components/onboarding/jrp-keys-step";
 import { AlphaGuide, ModSettingsGuide } from "@/components/onboarding/setup-guides";
 import { StagedScene } from "@/components/onboarding/staged-scene";
+import { TufIntro } from "@/components/onboarding/tuf-intro";
 import { WelcomeScene } from "@/components/onboarding/welcome-scene";
 import { LanguageMenu } from "@/components/settings/language-menu";
 import { useRecommendations } from "@/hooks/mods/use-recommendations";
@@ -114,6 +115,7 @@ export function OnboardingPage() {
                 next={() => send("next")}
               />
             )}
+            {step === "tufIntro" && <TufIntro next={() => send("next")} disabled={locked} />}
             {step === "tuf" && <TufStep flow={recommendations} next={() => send("next")} />}
             {step === "more" && <MoreModsStep flow={recommendations} next={() => send("next")} />}
             {step === "ready" && (
@@ -147,6 +149,11 @@ export function OnboardingPage() {
             <Button variant="ghost" size="small" disabled={locked} onClick={() => send("back")}>
               <Icon name="left" size={15} />
               {t("onboarding.back")}
+            </Button>
+          )}
+          {step === "tufIntro" && (
+            <Button variant="ghost" size="small" disabled={locked} onClick={() => send("next")}>
+              {t("onboarding.skip")}
             </Button>
           )}
           {step === "installation" && (

@@ -18,7 +18,11 @@ describe("onboarding navigation", () => {
     state = transition(state, "next");
     expect(state.step).toBe("chatter");
     state = transition(state, "next");
+    expect(state.step).toBe("tufIntro");
+    expect(transition(state, "back").step).toBe("chatter");
+    state = transition(state, "next");
     expect(state.step).toBe("tuf");
+    expect(transition(state, "back").step).toBe("tufIntro");
     state = transition(state, "next");
     expect(state.step).toBe("more");
     state = transition(state, "next");

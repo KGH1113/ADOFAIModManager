@@ -344,6 +344,10 @@ describe("desktop user journeys", () => {
       expect(setup).toHaveBeenCalledWith("/Preview/ADanceOfFireAndIce.app", "chatter-defaults"),
     );
     await user.click(await screen.findByRole("button", { name: "Continue" }));
+    await waitFor(() => expect(usePreferences.getState().onboarding.step).toBe("tufIntro"));
+    const skipTufIntro = await screen.findByRole("button", { name: "Skip" });
+    expect(skipTufIntro.closest(".onboarding-footer")).not.toBeNull();
+    await user.click(skipTufIntro);
     await user.click(await screen.findByTestId("install-tufLite"));
     await waitFor(() =>
       expect(screen.getByTestId("install-tufLite").textContent).toBe("Installed"),

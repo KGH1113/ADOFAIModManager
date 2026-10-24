@@ -1,0 +1,531 @@
+{
+  "retrievedAt": "2026-10-24",
+  "metadataSource": "https://api.tuforums.com/v2/database/difficulties",
+  "icons": [
+    {
+      "name": "Censored",
+      "type": "SPECIAL",
+      "color": "#434343",
+      "filename": "Censored.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/85c6adcf-cd35-42fb-b9ff-3993e71c5cae/original"
+    },
+    {
+      "name": "G1",
+      "type": "PGU",
+      "color": "#F2A700",
+      "filename": "G1.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/b07798fe-5a1c-4e6a-99b7-df22dbc06144/original"
+    },
+    {
+      "name": "G2",
+      "type": "PGU",
+      "color": "#F09E08",
+      "filename": "G2.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/bbdffd88-1082-46cd-9ed5-425580f961c7/original"
+    },
+    {
+      "name": "G3",
+      "type": "PGU",
+      "color": "#EE9510",
+      "filename": "G3.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/3bf99fbf-b6eb-445a-aaad-540a16fd2834/original"
+    },
+    {
+      "name": "G4",
+      "type": "PGU",
+      "color": "#ED8C18",
+      "filename": "G4.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/5ab1c0b6-eba3-4a85-b72e-5cf90e574801/original"
+    },
+    {
+      "name": "G5",
+      "type": "PGU",
+      "color": "#EB8420",
+      "filename": "G5.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/d684a1b7-5f1f-4791-9117-4712e84de788/original"
+    },
+    {
+      "name": "G6",
+      "type": "PGU",
+      "color": "#EA7B28",
+      "filename": "G6.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/0fd78e35-8300-4e8e-b4f2-fa9e314967d5/original"
+    },
+    {
+      "name": "G7",
+      "type": "PGU",
+      "color": "#E87230",
+      "filename": "G7.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/1fef4554-ef1d-4310-b131-bca2d17a3359/original"
+    },
+    {
+      "name": "G8",
+      "type": "PGU",
+      "color": "#E66938",
+      "filename": "G8.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/a0492e2a-a07f-45c3-83d9-9eb76e5d3aea/original"
+    },
+    {
+      "name": "G9",
+      "type": "PGU",
+      "color": "#E56040",
+      "filename": "G9.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/c3f4ffd8-6d39-412a-a2b9-0a73a149e2e0/original"
+    },
+    {
+      "name": "G10",
+      "type": "PGU",
+      "color": "#E35848",
+      "filename": "G10.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/9c996072-9db6-4334-af8a-5c6b8645c08f/original"
+    },
+    {
+      "name": "G11",
+      "type": "PGU",
+      "color": "#E14F4F",
+      "filename": "G11.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/c3fb6e73-b232-41ff-9edb-f2cca7aad653/original"
+    },
+    {
+      "name": "G12",
+      "type": "PGU",
+      "color": "#E04657",
+      "filename": "G12.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/4452a1f3-c6ba-46b9-b8ee-1b2c5ce3b648/original"
+    },
+    {
+      "name": "G13",
+      "type": "PGU",
+      "color": "#DE3D5F",
+      "filename": "G13.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/52630984-6c0f-472c-bd3a-3061836319dc/original"
+    },
+    {
+      "name": "G14",
+      "type": "PGU",
+      "color": "#DC3467",
+      "filename": "G14.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/904314ee-2922-46ba-87ee-a05059bebcb3/original"
+    },
+    {
+      "name": "G15",
+      "type": "PGU",
+      "color": "#DB2C6F",
+      "filename": "G15.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/7d5ad88f-7b7f-4e40-8b1d-c2eb6238c679/original"
+    },
+    {
+      "name": "G16",
+      "type": "PGU",
+      "color": "#D92377",
+      "filename": "G16.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/18f1661a-1b70-4144-83eb-0e11368d3399/original"
+    },
+    {
+      "name": "G17",
+      "type": "PGU",
+      "color": "#D71A7F",
+      "filename": "G17.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/ffa5f462-9861-426c-9b4a-6fe3f3636172/original"
+    },
+    {
+      "name": "G18",
+      "type": "PGU",
+      "color": "#D61187",
+      "filename": "G18.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/ff6843d7-0741-4dc8-b544-f4724f4de173/original"
+    },
+    {
+      "name": "G19",
+      "type": "PGU",
+      "color": "#D4088F",
+      "filename": "G19.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/85742e0e-cddb-4736-96ef-a401e3bdefea/original"
+    },
+    {
+      "name": "G20",
+      "type": "PGU",
+      "color": "#D20097",
+      "filename": "G20.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/ee71f573-0820-4825-a2bb-b2cc7f405413/original"
+    },
+    {
+      "name": "GQ0 (G1~G4)",
+      "type": "SPECIAL",
+      "color": "#f1a105",
+      "filename": "GQ0.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/22c5d144-3bb3-4aeb-9699-a56d00f1976f/original"
+    },
+    {
+      "name": "GQ1 (G5~G8)",
+      "type": "SPECIAL",
+      "color": "#eb7b29",
+      "filename": "GQ1.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/25299c49-2e6a-41d9-8324-75ed9cdafb37/original"
+    },
+    {
+      "name": "GQ2 (G9~G12)",
+      "type": "SPECIAL",
+      "color": "#e3554a",
+      "filename": "GQ2.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/c259824b-1ec3-46a3-9400-223ff2a74359/original"
+    },
+    {
+      "name": "GQ3 (G13~G16)",
+      "type": "SPECIAL",
+      "color": "#c0345e",
+      "filename": "GQ3.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/0fd3800c-dd47-4594-b1d1-5afa07b2f2fd/original"
+    },
+    {
+      "name": "GQ4 (G17~G20)",
+      "type": "SPECIAL",
+      "color": "#d61088",
+      "filename": "GQ4.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/55975744-0686-4ac3-9dec-3854759c980b/original"
+    },
+    {
+      "name": "Impossible",
+      "type": "SPECIAL",
+      "color": "#ceadff",
+      "filename": "Impossible.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/0531e86a-fc83-40d6-b029-a5c1ad025ef4/original"
+    },
+    {
+      "name": "P0",
+      "type": "SPECIAL",
+      "color": "#ffffff",
+      "filename": "P0.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/63d94c82-38ca-4e0d-99eb-06781e6f17e7/original"
+    },
+    {
+      "name": "P1",
+      "type": "PGU",
+      "color": "#0099ff",
+      "filename": "P1.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/88a77849-b153-426b-9e8d-633756278333/original"
+    },
+    {
+      "name": "P2",
+      "type": "PGU",
+      "color": "#00a2ff",
+      "filename": "P2.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/c2011b26-956a-459e-8961-918a07ff12eb/original"
+    },
+    {
+      "name": "P3",
+      "type": "PGU",
+      "color": "#00aaff",
+      "filename": "P3.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/e70f906e-1173-44e5-be77-66881b66a4a8/original"
+    },
+    {
+      "name": "P4",
+      "type": "PGU",
+      "color": "#00b2ff",
+      "filename": "P4.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/39a66532-6ba6-4d2f-ba87-0c43e6d1a4cb/original"
+    },
+    {
+      "name": "P5",
+      "type": "PGU",
+      "color": "#00bbff",
+      "filename": "P5.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/5499e378-ecef-4902-8d9d-6adff89494d3/original"
+    },
+    {
+      "name": "P6",
+      "type": "PGU",
+      "color": "#00c3ff",
+      "filename": "P6.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/fbcd9204-abfe-4a29-8725-60f96664edf4/original"
+    },
+    {
+      "name": "P7",
+      "type": "PGU",
+      "color": "#00ccff",
+      "filename": "P7.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/cba700a7-083b-4c61-8fae-10350371e459/original"
+    },
+    {
+      "name": "P8",
+      "type": "PGU",
+      "color": "#00ddff",
+      "filename": "P8.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/aa73cc35-d44d-42eb-b305-5fa97877d6d0/original"
+    },
+    {
+      "name": "P9",
+      "type": "PGU",
+      "color": "#00e5ff",
+      "filename": "P9.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/8fb83ac5-bb6a-4b6d-8dde-c5bc2e8c6c55/original"
+    },
+    {
+      "name": "P10",
+      "type": "PGU",
+      "color": "#00eeff",
+      "filename": "P10.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/5680ffa6-445a-4c50-ae33-ed7edf456980/original"
+    },
+    {
+      "name": "P11",
+      "type": "PGU",
+      "color": "#00ffff",
+      "filename": "P11.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/fed1658c-bafd-43c9-8199-c9b8cbd9c7de/original"
+    },
+    {
+      "name": "P12",
+      "type": "PGU",
+      "color": "#00ffe8",
+      "filename": "P12.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/40587921-7120-4111-bd74-b49af7e2bbbb/original"
+    },
+    {
+      "name": "P13",
+      "type": "PGU",
+      "color": "#00ffd0",
+      "filename": "P13.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/cc2dd487-e9e8-4a98-81d0-4fff014aae17/original"
+    },
+    {
+      "name": "P14",
+      "type": "PGU",
+      "color": "#00ffb8",
+      "filename": "P14.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/84d2872c-3285-472e-9fff-50c69d7aafb6/original"
+    },
+    {
+      "name": "P15",
+      "type": "PGU",
+      "color": "#00ffaa",
+      "filename": "P15.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/1ed95087-6e50-40f9-89ca-6c6926d8f9e0/original"
+    },
+    {
+      "name": "P16",
+      "type": "PGU",
+      "color": "#00ff88",
+      "filename": "P16.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/0117b2b7-8d2f-4372-8a44-5eabc497341e/original"
+    },
+    {
+      "name": "P17",
+      "type": "PGU",
+      "color": "#00ff70",
+      "filename": "P17.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/79f35d27-9340-4e15-8277-9aad6079b215/original"
+    },
+    {
+      "name": "P18",
+      "type": "PGU",
+      "color": "#00ff48",
+      "filename": "P18.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/f8555d96-4939-4759-9e0e-f185f85ec6e9/original"
+    },
+    {
+      "name": "P19",
+      "type": "PGU",
+      "color": "#00ff30",
+      "filename": "P19.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/17aec507-5706-4fe8-8a2c-ac6d5ae9457e/original"
+    },
+    {
+      "name": "P20",
+      "type": "PGU",
+      "color": "#44ff15",
+      "filename": "P20.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/f52f6018-f4e6-4392-92f5-af0121783585/original"
+    },
+    {
+      "name": "Qq",
+      "type": "SPECIAL",
+      "color": "#ffffff",
+      "filename": "Qq.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/36aa3714-763d-4480-bba6-75a4601e6d3e/original"
+    },
+    {
+      "name": "U1",
+      "type": "PGU",
+      "color": "#7B4FB2",
+      "filename": "U1.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/86dc92ac-1094-4569-bf52-d5d5b619d12e/original"
+    },
+    {
+      "name": "U2",
+      "type": "PGU",
+      "color": "#744AA8",
+      "filename": "U2.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/9344b5e1-91ed-4174-b9c4-7d7c8de8c626/original"
+    },
+    {
+      "name": "U3",
+      "type": "PGU",
+      "color": "#6E469F",
+      "filename": "U3.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/37f8053e-88db-4118-a678-916911b3b033/original"
+    },
+    {
+      "name": "U4",
+      "type": "PGU",
+      "color": "#674295",
+      "filename": "U4.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/61a87378-1296-4952-8966-297ecb7bc06a/original"
+    },
+    {
+      "name": "U5",
+      "type": "PGU",
+      "color": "#613E8C",
+      "filename": "U5.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/b6239172-0e06-4770-b9bd-23e52f044a19/original"
+    },
+    {
+      "name": "U6",
+      "type": "PGU",
+      "color": "#5A3A83",
+      "filename": "U6.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/fb8c413e-dc19-4073-8552-0c0837a27af2/original"
+    },
+    {
+      "name": "U7",
+      "type": "PGU",
+      "color": "#543679",
+      "filename": "U7.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/63f471dd-cd49-4ca3-91fb-51a55c158c5a/original"
+    },
+    {
+      "name": "U8",
+      "type": "PGU",
+      "color": "#4D3170",
+      "filename": "U8.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/1e077add-01db-487f-bbb6-bfcea6538828/original"
+    },
+    {
+      "name": "U9",
+      "type": "PGU",
+      "color": "#472D67",
+      "filename": "U9.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/a3bf956b-546c-419b-ba22-304b20796b7d/original"
+    },
+    {
+      "name": "U10",
+      "type": "PGU",
+      "color": "#40295D",
+      "filename": "U10.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/e008f890-75c9-499b-8a98-ab08377cb1c8/original"
+    },
+    {
+      "name": "U11",
+      "type": "PGU",
+      "color": "#3A2554",
+      "filename": "U11.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/c1af0b88-aa69-486a-b1ac-3c2be80a8fc6/original"
+    },
+    {
+      "name": "U12",
+      "type": "PGU",
+      "color": "#33214A",
+      "filename": "U12.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/dee05ba9-8871-4c5a-9cc5-369c43e89051/original"
+    },
+    {
+      "name": "U13",
+      "type": "PGU",
+      "color": "#2D1D41",
+      "filename": "U13.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/80d9844b-b6cf-4c6d-8dce-a944de4ba7a9/original"
+    },
+    {
+      "name": "U14",
+      "type": "PGU",
+      "color": "#261838",
+      "filename": "U14.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/17f21c1d-530e-428d-9fa7-9674ac741ade/original"
+    },
+    {
+      "name": "U15",
+      "type": "PGU",
+      "color": "#20142E",
+      "filename": "U15.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/81e9a487-e7dd-40df-aa9e-2c5a84ddf6e8/original"
+    },
+    {
+      "name": "U16",
+      "type": "PGU",
+      "color": "#191025",
+      "filename": "U16.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/19fb57f9-9eaf-4c39-8707-1d07c74e2438/original"
+    },
+    {
+      "name": "U17",
+      "type": "PGU",
+      "color": "#130C1C",
+      "filename": "U17.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/5bafdc19-c7e7-4152-8729-eafcf1b2bacc/original"
+    },
+    {
+      "name": "U18",
+      "type": "PGU",
+      "color": "#0C0812",
+      "filename": "U18.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/b0c87a9d-6c07-45f1-ab9a-4bc236b4c331/original"
+    },
+    {
+      "name": "U19",
+      "type": "PGU",
+      "color": "#060409",
+      "filename": "U19.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/981a377c-ad51-4d59-ac67-1c9bcce4328a/original"
+    },
+    {
+      "name": "U20",
+      "type": "PGU",
+      "color": "#000000",
+      "filename": "U20.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/2a55138b-fc98-4a95-a876-4642957f16cd/original"
+    },
+    {
+      "name": "Unranked",
+      "type": "SPECIAL",
+      "color": "#ffffff",
+      "filename": "Unranked.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/d3f0110d-2c58-4727-a087-4cd6e8db8c66/original"
+    },
+    {
+      "name": "UQ0 (U1~U4)",
+      "type": "SPECIAL",
+      "color": "#7149a4",
+      "filename": "UQ0.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/d084e41f-3437-4c4a-b2c3-2588b4a98c8e/original"
+    },
+    {
+      "name": "UQ1 (U5~U8)",
+      "type": "SPECIAL",
+      "color": "#3f2067",
+      "filename": "UQ1.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/f30757ed-4bfc-4954-852a-3d8045f9e066/original"
+    },
+    {
+      "name": "UQ2 (U9~U12)",
+      "type": "SPECIAL",
+      "color": "#2f2b36",
+      "filename": "UQ2.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/67c700d5-00e0-48d5-87c9-e2cd169c3f85/original"
+    },
+    {
+      "name": "UQ3 (U13~U16)",
+      "type": "SPECIAL",
+      "color": "#7e0000",
+      "filename": "UQ3.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/99f2dce3-f2ec-474f-8714-73f46821f747/original"
+    },
+    {
+      "name": "UQ4 (U17~U20)",
+      "type": "SPECIAL",
+      "color": "#fffefe",
+      "filename": "UQ4.png",
+      "source": "https://api.tuforums.com/cdn/images/difficulty_icon/7283e819-10a2-4375-8fdf-6d3191ef14eb/original"
+    }
+  ]
+}
