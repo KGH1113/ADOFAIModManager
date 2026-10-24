@@ -7,6 +7,19 @@ const archiveArgs = (source: ArchiveSource) =>
   source.token ? { downloadToken: source.token } : { zipPath: source.path };
 export function createModsApi(engine: EngineGateway): ModsApi {
   return {
+    async loadUmmShortcut(gamePath) {
+      const result = await engine("ummshortcut", gamePath);
+      if (!result.ummShortcut) throw new Error("UMM shortcut is unavailable.");
+      return result.ummShortcut;
+    },
+    async saveUmmShortcut(gamePath, shortcut) {
+      const result = await engine("saveummshortcut", gamePath, {
+        shortcutKey: shortcut.keyCode,
+        shortcutModifiers: shortcut.modifiers,
+      });
+      if (!result.ummShortcut) throw new Error("UMM shortcut could not be saved.");
+      return result.ummShortcut;
+    },
     async configureOnboarding(gamePath, kind) {
       await engine("onboardingsetup", gamePath, { presetKind: kind });
     },

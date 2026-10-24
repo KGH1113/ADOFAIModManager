@@ -202,8 +202,12 @@ describe("recommended installation plans", () => {
     expect(download).not.toHaveBeenCalled();
     expect(install).not.toHaveBeenCalled();
   });
-  it("installs IPC before Lite and enables beta updates for Countdown", async () => {
+  it("installs Lite without IPC and enables beta updates for Countdown", async () => {
     const api = await prepare();
+    const catalog = await api.catalog.list();
+    vi.spyOn(api.catalog, "list").mockResolvedValue(
+      catalog.filter((mod) => mod.id !== "adofaiipc"),
+    );
     const setup = vi.spyOn(api.mods, "configureOnboarding");
     const game = await installRecommendation(
       api,
@@ -213,7 +217,7 @@ describe("recommended installation plans", () => {
       new AbortController().signal,
       () => {},
     );
-    expect(game.mods.map((m) => m.id)).toEqual(["AdofaiIpc", "TUFHelperLite"]);
+    expect(game.mods.map((m) => m.id)).toEqual(["TUFHelperLite"]);
     expect(setup).not.toHaveBeenCalled();
     await installRecommendation(
       api,

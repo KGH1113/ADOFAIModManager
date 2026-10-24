@@ -7,7 +7,10 @@ import type {
 } from "@/models/mods/mod-model";
 import type { JrpKeyBindings, KeyViewerStyle } from "@/models/onboarding/key-bindings";
 import type { OnboardingSetup } from "@/models/onboarding/onboarding-model";
+import type { UmmShortcut } from "@/models/onboarding/umm-shortcut";
 export interface ModsApi {
+  loadUmmShortcut(gamePath: string): Promise<UmmShortcut>;
+  saveUmmShortcut(gamePath: string, shortcut: UmmShortcut): Promise<UmmShortcut>;
   configureOnboarding(gamePath: string, kind: OnboardingSetup): Promise<void>;
   loadJrpKeys(gamePath: string): Promise<JrpKeyBindings>;
   saveJrpKeys(gamePath: string, keys: number[], style: KeyViewerStyle): Promise<JrpKeyBindings>;

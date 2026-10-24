@@ -6,7 +6,6 @@ import { useApi } from "@/api/app-api-provider";
 import { useManager } from "@/app/manager-provider";
 import {
   copyKeyLayouts,
-  hasDuplicateBinding,
   type JrpKeyBindings,
   type KeyViewerStyle,
   keyLabel,
@@ -121,10 +120,6 @@ function KeyViewerEditor({
         setMessage({ key: "onboarding.keys.unsupported" });
         return;
       }
-      if (hasDuplicateBinding(style, keys, activeSlot, key)) {
-        setMessage({ key: "onboarding.keys.duplicate", name: keyLabel(key) });
-        return;
-      }
       setLayouts((values) => ({
         ...values,
         [style]: values[style].map((value, index) => (index === activeSlot ? key : value)),
@@ -141,7 +136,7 @@ function KeyViewerEditor({
       window.removeEventListener("blur", cancel);
       document.removeEventListener("pointerdown", outside);
     };
-  }, [activeSlot, keys, platform, style]);
+  }, [activeSlot, platform, style]);
 
   // A mutation/OS focus change ends capture instead of leaving a finger depressed.
   useEffect(() => {
@@ -238,7 +233,7 @@ function KeyViewerEditor({
           aria-label={t("onboarding.keys.layout", { count: style })}
           style={{
             aspectRatio: `${layout.width} / ${layout.height}`,
-            width: `min(100%, 720px, ${(layout.width / layout.height) * 100}cqh)`,
+            width: `min(100%, calc(var(--key-size) * ${layout.width / 50}), ${(layout.width / layout.height) * 100}cqh)`,
           }}
         >
           {layout.keys.map(keyBox)}

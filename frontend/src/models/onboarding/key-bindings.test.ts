@@ -3,7 +3,6 @@ import {
   copyKeyLayouts,
   defaultKey10,
   defaultKeyLayouts,
-  hasDuplicateBinding,
   keyLabel,
   keyLayoutComplete,
   keySlotGuide,
@@ -65,18 +64,13 @@ describe("Unity keyboard bindings", () => {
     }
     expect(() => keySlotGuide(12, 12)).toThrow();
   });
-  it("accepts native defaults while rejecting duplicate bindings", () => {
+  it("accepts native defaults and duplicate bindings while requiring every slot", () => {
     for (const style of keyViewerStyles) {
       expect(keyLayoutComplete(style, defaultKeyLayouts[style])).toBe(true);
       expect(keyLayoutComplete(style, defaultKeyLayouts[style].slice(1))).toBe(false);
-      expect(
-        hasDuplicateBinding(style, defaultKeyLayouts[style], 0, defaultKeyLayouts[style][1]),
-      ).toBe(true);
-      expect(
-        hasDuplicateBinding(style, defaultKeyLayouts[style], 0, defaultKeyLayouts[style][0]),
-      ).toBe(false);
+      expect(keyLayoutComplete(style, Array(style).fill(97))).toBe(true);
     }
-    expect(keyLayoutComplete(4, [50, 50, 112, 61])).toBe(false);
+    expect(keyLayoutComplete(4, [50, 50, 112, 61])).toBe(true);
     expect(keyLayoutComplete(4, [50, 101, 112, 0])).toBe(false);
   });
   it("copies all five styles without sharing editable arrays", () => {

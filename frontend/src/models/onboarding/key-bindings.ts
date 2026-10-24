@@ -85,22 +85,8 @@ export function keySlotGuide(style: KeyViewerStyle, index: number): KeySlotGuide
   return { hand: null, finger: null, highlight: null, label: "free" };
 }
 
-export function hasDuplicateBinding(
-  style: KeyViewerStyle,
-  keys: readonly number[],
-  slot: number,
-  key: number,
-) {
-  return keys.slice(0, style).some((value, index) => value === key && index !== slot);
-}
-
 export function keyLayoutComplete(style: KeyViewerStyle, keys: readonly number[]) {
-  const guidedKeys = keys.slice(0, style);
-  return (
-    keys.length === style &&
-    keys.every((key) => key > 0) &&
-    new Set(guidedKeys).size === guidedKeys.length
-  );
+  return keys.length === style && keys.every((key) => key > 0);
 }
 
 const namedKeys: Record<string, [number, string]> = {

@@ -90,7 +90,7 @@ describe("JRP key registration and hand guidance", () => {
     expect(left?.getAttribute("data-active-finger")).toBe("none");
   });
 
-  it("lowers the selected finger while waiting, rejects duplicates, and raises it after assignment", async () => {
+  it("lowers the selected finger while waiting and saves a key already assigned to another slot", async () => {
     const { api, next } = mount();
     const save = vi.spyOn(api.mods, "saveJrpKeys");
     const user = userEvent.setup();
@@ -101,19 +101,18 @@ describe("JRP key registration and hand guidance", () => {
     expect(document.querySelector('[data-hand="left"]')?.getAttribute("data-active-finger")).toBe(
       "0",
     );
-    fireEvent.keyDown(window, { code: "KeyE", key: "e" });
-    expect(screen.getByRole("status").textContent).toContain("already assigned");
-    expect(little.getAttribute("aria-pressed")).toBe("true");
     fireEvent.keyDown(window, { code: "KeyQ", key: "ㅂ", repeat: true });
     expect(little.getAttribute("aria-pressed")).toBe("true");
-    fireEvent.keyDown(window, { code: "KeyQ", key: "ㅂ" });
+    fireEvent.keyDown(window, { code: "KeyE", key: "ㄷ" });
     expect(document.querySelector('[data-hand="left"]')?.getAttribute("data-active-finger")).toBe(
       "none",
     );
-    expect(screen.getByRole("button", { name: "left little finger, current key Q" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "left little finger, current key E" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "left index finger, current key E" })).toBeTruthy();
+    expect(little.getAttribute("aria-pressed")).toBe("false");
     await user.click(screen.getByRole("button", { name: "Save & continue" }));
     await waitFor(() => expect(next).toHaveBeenCalledTimes(1));
-    expect(save).toHaveBeenCalledWith(path, [113, ...defaultKey10.slice(1)], 10);
+    expect(save).toHaveBeenCalledWith(path, [101, ...defaultKey10.slice(1)], 10);
   });
   it("switches fingers and cancels capture on Escape or window blur", async () => {
     mount();

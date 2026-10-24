@@ -64,38 +64,6 @@ export function OnboardingPage() {
                   </h1>
                   <p className="scene-description">{t("onboarding.install.subtitle")}</p>
                   <GameSetupCard
-                    loaderActions={
-                      <div className="onboarding-install-actions">
-                        {game.data?.installed ? (
-                          <>
-                            <span className="installed-label">
-                              <Icon name="check" />
-                              {t("onboarding.mods.installed")}
-                            </span>
-                            <Button
-                              variant="primary"
-                              disabled={locked}
-                              onClick={() => send("next")}
-                            >
-                              {t("onboarding.continue")}
-                              <Icon name="right" />
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            variant="primary"
-                            pending={busy}
-                            disabled={locked || !game.data?.detected || game.data.gameRunning}
-                            onClick={() => {
-                              void game.execute("install");
-                            }}
-                          >
-                            <Icon name="download" />
-                            {t("onboarding.umm.install")}
-                          </Button>
-                        )}
-                      </div>
-                    }
                     compact
                     installation={game.data}
                     busy={locked}
@@ -107,6 +75,32 @@ export function OnboardingPage() {
                       void game.refresh();
                     }}
                   />
+                  <div className="onboarding-install-actions">
+                    {game.data?.installed ? (
+                      <>
+                        <span className="installed-label">
+                          <Icon name="check" />
+                          {t("onboarding.mods.installed")}
+                        </span>
+                        <Button variant="primary" disabled={locked} onClick={() => send("next")}>
+                          {t("onboarding.continue")}
+                          <Icon name="right" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        pending={busy}
+                        disabled={locked || !game.data?.detected || game.data.gameRunning}
+                        onClick={() => {
+                          void game.execute("install");
+                        }}
+                      >
+                        <Icon name="download" />
+                        {t("onboarding.umm.install")}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </StagedScene>
             )}

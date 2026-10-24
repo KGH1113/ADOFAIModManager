@@ -1,5 +1,6 @@
 mod downloads;
 mod engine;
+mod window_sizing;
 
 use downloads::Downloads;
 use engine::EngineRequest;
@@ -159,6 +160,9 @@ pub fn run() {
             take_open_files
         ])
         .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                window_sizing::initialize(&window)?;
+            }
             queue_imports(app.handle(), std::env::args().skip(1));
             Ok(())
         })

@@ -14,7 +14,7 @@
 
 ## 공식 다운로드 주소
 
-추천 설치는 TUF 목록 조회 없이 아래 주소를 사용해요. JRP의 JALib과 TUFHelperLite의 ADOFAI IPC를 먼저 설치하고, 모든 ZIP의 모드 ID를 검사한 뒤 설치를 시작해요.
+추천 설치는 TUF 목록 조회 없이 아래 주소를 사용해요. JRP의 JALib을 먼저 설치하고, 모든 ZIP의 모드 ID를 검사한 뒤 설치를 시작해요. TUFHelperLite는 통신 기능이 내장되어 별도 ADOFAI IPC 설치가 필요하지 않아요.
 
 주소와 버전은 [official-downloads.ts](/Users/kgh/dev/src/ADOFAIModManager/frontend/src/models/catalog/official-downloads.ts)에 모았어요. 새 릴리스를 연결할 때는 주소와 버전을 함께 갱신하면 돼요. TUF 목록을 불러오지 못해도 이 추천 모드 10개는 목록과 업데이트 확인에 사용할 수 있어요.
 
@@ -42,7 +42,7 @@ macOS에서 선택하는 10개 ZIP은 실제로 내려받아서 `Info.json`의 �
 | Keyboard Chatter Blocker | 입력 간격을 35ms로 설정해요. JRP가 활성화되어 있으면 키 제한을 켜고 현재 손·발 키 배열을 JRP 프로필에 동기화해요. 기존 개인 프로필과 제외 키는 보존해요. 기존 XML 설정도 읽어서 JSON으로 옮겨요. |
 | TUFHelper | 전체 오버레이, Leaderboard, Level Info, Score & Speed를 켜요. JRP가 함께 활성화되어 있으면 Progress·Combo·Judgements·Current BPM·Real BPM의 중복 표시를 꺼요. 새 요소에는 모드의 기본 위치를 넣고, 기존 위치와 다운로드 경로는 보존해요. |
 | Enhanced Countdown | `UpdateSettings.json`에서 베타 업데이트를 켜요. 확인한 0.2.0–0.2.3 설정 형식을 지원해요. |
-| TUFHelperLite | ADOFAI IPC를 자동 설치해요. Lite는 전체 TUFHelper의 오버레이 설정을 제공하지 않으므로 다운로드 경로를 보존해요. |
+| TUFHelperLite | 통신 기능을 내장하므로 별도 IPC 모드를 설치하지 않아요. Lite는 전체 TUFHelper의 오버레이 설정을 제공하지 않으므로 다운로드 경로를 보존해요. |
 | Enhanced Effect Remover | 게임 내 모드 설정에서 조정할 수 있도록 안내해요. 사양 문서의 추가 기능 두 항목은 게임 내에서 나중에 설정하도록 남겨 두었어요. |
 
 위 기본값은 온보딩뿐 아니라 새 로컬 ZIP 설치에도 적용돼요. 재설치·업데이트에서는 `Settings.json`, `Setting.json`, `Setting.xml`, `UpdateSettings.json`과 첫 백업을 보존해요. 설정 파일에 있는 다른 필드도 유지하며, 이미 설치한 모드에는 새 설치용 기본값을 반복 적용하지 않아요.
@@ -98,7 +98,7 @@ JRP 다음에 키 배치 화면을 넣었어요. JRP를 설치하지 않으면 �
 - Check again과 하단 안내 문장·버튼 위 구분선을 없애고, 강조하지 않는 Skip을 추가했어요.
 - UMM 다음에 Ctrl+F10과 모드별 설정 버튼을 설명하는 안내를 넣었어요. 왼쪽 영상 자리는 요청대로 비워 두고, 오른쪽에 설명과 Understand / 이해했어요 버튼을 배치했어요.
 - `asdf.md`의 문장을 반영하고, 한국어는 기존 해요체를 유지했어요.
-- TUFHelperLite의 IPC 자동 설치 설명을 추가하고, More mods에서 PACL을 제외했어요.
+- TUFHelperLite의 통신 기능 내장에 맞춰 별도 IPC 자동 설치와 안내를 제거했어요. More mods에서 PACL을 제외했어요.
 
 ## 검증 결과
 

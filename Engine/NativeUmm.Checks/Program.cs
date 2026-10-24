@@ -114,7 +114,7 @@ try {
     }
     var onboarding = new OnboardingSetupService();
     var jrp = Mod("JipperResourcePack", "1.5.2.0");
-    var chatter = Mod("KeyboardChatterBlocker", "0.1.2");
+    var chatter = Mod("KeyboardChatterBlocker", "9.9.9"); // KCB settings are not gated by the mod version.
     var tuf = Mod("TUFHelper", "3.1.1");
     var jrpPath = Path.Combine(jrp.Path, "Settings.json");
     var tufPath = Path.Combine(tuf.Path, "Settings.json");
@@ -150,6 +150,22 @@ try {
         Check(File.ReadAllText(tufPath) == before, "Leave symlink target unchanged");
     }
     ModDefaultsChecks.Run(root, Check, Reject);
+    var shortcutDirectory = Path.Combine(root, "shortcut-manager");
+    Directory.CreateDirectory(shortcutDirectory);
+    var shortcuts = new UmmShortcutService();
+    Check(shortcuts.Load(shortcutDirectory) == UmmShortcutService.Default, "Default UMM shortcut before first launch");
+    var shortcutPath = Path.Combine(shortcutDirectory, "Params.xml");
+    var originalParams = "<Param><UIScale>1.5</UIScale><ModParams><Mod Id=\"Example\" Enabled=\"false\" /></ModParams><Hotkey><keyCode>F10</keyCode><modifiers>1</modifiers></Hotkey></Param>";
+    File.WriteAllText(shortcutPath, originalParams);
+    shortcuts.Save(shortcutDirectory, "K", 3);
+    Check(shortcuts.Load(shortcutDirectory) == new UmmShortcut("K", 3), "Persist UMM key and modifier combination");
+    var savedParams = XDocument.Load(shortcutPath);
+    Check((string?)savedParams.Root!.Element("UIScale") == "1.5" && (string?)savedParams.Root.Element("ModParams")!.Element("Mod")!.Attribute("Enabled") == "false", "Shortcut edits preserve other UMM settings");
+    Check(File.ReadAllText(shortcutPath + ".adofai-mod-manager.bak") == originalParams, "Back up original UMM settings");
+    Reject(() => shortcuts.Save(shortcutDirectory, "Escape", 0), "Reject escape shortcut");
+    Reject(() => shortcuts.Save(shortcutDirectory, "F10", 8), "Reject unsupported modifier");
+    File.WriteAllText(shortcutPath, "<Other />");
+    Reject(() => shortcuts.Save(shortcutDirectory, "F10", 1), "Preserve malformed UMM settings");
     ModInstallationChecks.Run(root, Check);
     Console.WriteLine($"{checks} Linux/Proton discovery, architecture, preset, onboarding, preservation and path checks passed.");
 } finally { Directory.Delete(root, recursive: true); }

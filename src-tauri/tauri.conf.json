@@ -10,7 +10,7 @@
     "frontendDist": "../frontend/dist"
   },
   "app": {
-    "windows": [{ "label": "main", "title": "ADOFAI Mod Manager", "width": 1120, "height": 780, "minWidth": 1120, "minHeight": 780, "maxWidth": 1120, "maxHeight": 780, "resizable": false, "maximizable": false, "fullscreen": false, "titleBarStyle": "Overlay", "hiddenTitle": true, "backgroundColor": "#090d16", "dragDropEnabled": true }],
+    "windows": [{ "label": "main", "title": "ADOFAI Mod Manager", "width": 1120, "height": 780, "minWidth": 900, "minHeight": 560, "maxWidth": 1240, "maxHeight": 860, "resizable": true, "maximizable": false, "visible": false, "fullscreen": false, "titleBarStyle": "Overlay", "hiddenTitle": true, "backgroundColor": "#090d16", "dragDropEnabled": true }],
     "security": { "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: https://api.tuforums.com; font-src 'self'; media-src 'self' asset: http://asset.localhost; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; frame-src 'none'" }
   },
   "bundle": {

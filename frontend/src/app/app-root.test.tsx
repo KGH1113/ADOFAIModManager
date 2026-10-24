@@ -43,6 +43,31 @@ function mount(api = createMockApi()) {
   return api;
 }
 describe("desktop user journeys", () => {
+  it("shows both TUF previews and keeps setup details and independent installs available", async () => {
+    const api = createMockApi();
+    await api.installation.execute("/Preview/ADanceOfFireAndIce.app", "install");
+    usePreferences.setState({ onboarding: { step: "tuf", readyBack: "experience" } });
+    mount(api);
+    const user = userEvent.setup();
+    const lite = await screen.findByTestId("install-tufLite");
+    await waitFor(() => expect(lite.hasAttribute("disabled")).toBe(false));
+    expect(document.querySelectorAll("video")).toHaveLength(2);
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("button", { name: "TUFHelperLite setup details" })).toBeNull();
+    expect(screen.queryByText(/ADOFAI IPC/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "TUFHelper setup details" }));
+    expect((await screen.findByRole("dialog")).textContent).toContain("Level Info");
+    await user.keyboard("{Escape}");
+    await user.click(await screen.findByTestId("install-tufLite"));
+    await waitFor(() =>
+      expect(screen.getByTestId("install-tufLite").textContent).toBe("Installed"),
+    );
+    await user.click(await screen.findByTestId("install-tuf"));
+    await waitFor(() => expect(screen.getByTestId("install-tuf").textContent).toBe("Installed"));
+    expect(document.querySelectorAll("video")).toHaveLength(2);
+    expect(screen.getByTestId("install-tuf").textContent).toBe("Installed");
+    expect(screen.getByTestId("install-tufLite").textContent).toBe("Installed");
+  });
   it("checks installed mods against TUF and downloads updates through the import confirmation", async () => {
     const path = "/Preview/ADanceOfFireAndIce.app";
     const api = createMockApi();
@@ -191,6 +216,30 @@ describe("desktop user journeys", () => {
       expect(keys[0]?.getAttribute("data-pressed")).toBe(String(ctrl));
       expect(keys[1]?.getAttribute("data-pressed")).toBe(String(f10));
     }
+    const changeShortcut = await screen.findByRole("button", {
+      name: "Change shortcut: Ctrl + F10",
+    });
+    await waitFor(() => expect(changeShortcut.hasAttribute("disabled")).toBe(false));
+    await user.click(changeShortcut);
+    fireEvent.keyDown(window, { code: "Escape" });
+    expect(changeShortcut.getAttribute("aria-pressed")).toBe("false");
+    await user.click(changeShortcut);
+    fireEvent.keyDown(window, { code: "KeyK", ctrlKey: true, shiftKey: true });
+    await screen.findByRole("button", { name: "Change shortcut: Ctrl + Shift + K" });
+    expect(
+      screen.getByText("Launch A Dance of Fire and Ice, then press Ctrl + Shift + K."),
+    ).toBeTruthy();
+    expect(await api.mods.loadUmmShortcut("/Preview/ADanceOfFireAndIce.app")).toEqual({
+      keyCode: "K",
+      modifiers: 3,
+    });
+    shortcutVideo.currentTime = 177 / 60;
+    fireEvent.seeked(shortcutVideo);
+    expect(
+      [...document.querySelectorAll(".shortcut-preview kbd")].every(
+        (key) => key.getAttribute("data-pressed") === "true",
+      ),
+    ).toBe(true);
     await user.click(screen.getByRole("button", { name: "Got it" }));
     await user.click(await screen.findByTestId("install-jrp"));
     await waitFor(() => expect(screen.getByTestId("install-jrp").textContent).toBe("Installed"));

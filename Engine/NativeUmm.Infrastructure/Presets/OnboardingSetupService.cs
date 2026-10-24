@@ -45,6 +45,7 @@ public sealed class OnboardingSetupService
                     Setting(json, "Combo")["EnableAutoCombo"] = false;
                     Setting(json, "Attempt")["ShowAttempt"] = true;
                     Setting(json, "Attempt")["ShowFullAttempt"] = true;
+                    Feature(json, "ResourceChanger")["Enabled"] = false;
                     var changer = Setting(json, "ResourceChanger");
                     changer["ChangeRabbit"] = false;
                     changer["ChangeBallColor"] = false;
@@ -61,12 +62,12 @@ public sealed class OnboardingSetupService
                 Reconcile(mods, "JipperResourcePack");
                 break;
             case "chatter-defaults":
-                var chatter = Require(mods, "KeyboardChatterBlocker", "0.1.2");
+                var chatter = Require(mods, "KeyboardChatterBlocker");
                 JsonSettingsFile.Update(chatter, "Setting.json", json => json["inputInterval"] = 35, migrateXml: true);
                 Reconcile(mods, "KeyboardChatterBlocker");
                 break;
             case "jrp-key-sync":
-                Require(mods, "KeyboardChatterBlocker", "0.1.2");
+                Require(mods, "KeyboardChatterBlocker");
                 jrp = Require(mods, "JipperResourcePack", "1.5.2.0", "1.5.3.0");
                 JsonSettingsFile.Update(jrp, "Settings.json", json => Setting(json, "KeyViewer")["AutoSetupKeyLimit"] = true);
                 SynchronizeKeys(mods);
@@ -131,13 +132,11 @@ public sealed class OnboardingSetupService
     public JrpKeyBindings SaveKeys(IReadOnlyList<ModInfo> mods, int[] keys, int style)
     {
         var (enumValue, name, _) = KeyLayout(style);
-        var guidedKeys = keys.Where(k => k != 0).ToArray();
-        if (keys.Length != style || keys.Any(k => k < 0 || k > 0x10fff) ||
-            guidedKeys.Distinct().Count() != guidedKeys.Length)
-            throw new InvalidDataException($"Provide {style} valid bindings with distinct guided keys.");
+        if (keys.Length != style || keys.Any(k => k < 0 || k > 0x10fff))
+            throw new InvalidDataException($"Provide {style} valid bindings.");
         var jrp = Require(mods, "JipperResourcePack", "1.5.2.0", "1.5.3.0");
         LoadKeys(mods);
-        if (ActiveJrp(mods) && Find(mods, "KeyboardChatterBlocker") is { Version: "0.1.2", Enabled: true } chatter)
+        if (ActiveJrp(mods) && Find(mods, "KeyboardChatterBlocker") is { Enabled: true } chatter)
             ValidateChatterSettings(chatter);
         JsonSettingsFile.Update(jrp, "Settings.json", json =>
         {
@@ -151,7 +150,7 @@ public sealed class OnboardingSetupService
 
     private static void SynchronizeKeys(IReadOnlyList<ModInfo> mods)
     {
-        if (!ActiveJrp(mods) || Find(mods, "KeyboardChatterBlocker") is not { Version: "0.1.2", Enabled: true } chatter)
+        if (!ActiveJrp(mods) || Find(mods, "KeyboardChatterBlocker") is not { Enabled: true } chatter)
             return;
         var jrp = Require(mods, "JipperResourcePack", "1.5.2.0", "1.5.3.0");
         var jrpJson = JsonSettingsFile.Read(jrp, "Settings.json");
@@ -261,7 +260,7 @@ public sealed class OnboardingSetupService
     private static ModInfo Require(IReadOnlyList<ModInfo> mods, string id, params string[] versions)
     {
         var mod = Find(mods, id) ?? throw new InvalidDataException($"Install {id} before applying settings.");
-        if (!versions.Contains(mod.Version)) throw new InvalidDataException($"Unsupported {id} settings version: {mod.Version}.");
+        if (versions.Length > 0 && !versions.Contains(mod.Version)) throw new InvalidDataException($"Unsupported {id} settings version: {mod.Version}.");
         return mod;
     }
     private static JsonObject Feature(JsonObject json, string name) => Object(Object(json, "Feature"), name);

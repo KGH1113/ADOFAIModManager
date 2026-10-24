@@ -24,6 +24,9 @@ export const inspectionSchema = z.object({
 });
 export const engineResponseSchema = z.object({
   ok: z.boolean(),
+  ummShortcut: z
+    .object({ keyCode: z.string().min(1), modifiers: z.number().int().min(0).max(7) })
+    .optional(),
   detected: z.boolean(),
   error: z.string().nullish(),
   gameRunning: z.boolean().default(false),

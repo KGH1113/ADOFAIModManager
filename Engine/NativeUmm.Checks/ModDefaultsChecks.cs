@@ -15,7 +15,7 @@ internal static class ModDefaultsChecks
         }
         var setup = new OnboardingSetupService();
         var jrp = Mod("JipperResourcePack", "1.5.2.0");
-        var kcb = Mod("KeyboardChatterBlocker", "0.1.2");
+        var kcb = Mod("KeyboardChatterBlocker", "0.1.3");
         var tuf = Mod("TUFHelper", "3.1.1");
         var countdown = Mod("EnhancedCountdown", "0.2.0");
         var jrpPath = Path.Combine(jrp.Path, "Settings.json");
@@ -31,6 +31,7 @@ internal static class ModDefaultsChecks
         check(json["Feature"]!["Status"]!["Setting"]!["TimeTextType"]!.GetValue<int>() == 0, "Use Korean music time for a Korean PC");
         check(!json["Feature"]!["Combo"]!["Setting"]!["EnableAutoCombo"]!.GetValue<bool>(), "Disable autoplay combo");
         check(!json["Feature"]!["ResourceChanger"]!["Setting"]!["ChangeBallColor"]!.GetValue<bool>(), "Disable planet resource changes");
+        check(!json["Feature"]!["ResourceChanger"]!["Enabled"]!.GetValue<bool>(), "Disable Resource Changer feature on installation");
         check(json["Feature"]!["BPM"]!["Enabled"]!.GetValue<bool>(), "Enable uppercase BPM feature");
         setup.Apply([jrp], "jrp-defaults", "ja-JP");
         check(Read(jrpPath)["Feature"]!["Status"]!["Setting"]!["TimeTextType"]!.GetValue<int>() == 1, "Use English for other PC languages");
@@ -47,13 +48,13 @@ internal static class ModDefaultsChecks
         check(setup.LoadKeys([jrp]).Style == 16 && setup.LoadKeys([jrp]).Layouts.Keys.Order().SequenceEqual(new[] { 4, 8, 10, 12, 16 }), "Read the active native style and all five independent layouts");
         foreach (var (count, nativeStyle) in new[] { (4, 4), (8, 5), (10, 3), (12, 0), (16, 1) })
         {
-            var bindings = Enumerable.Range(97, count).ToArray();
+            var bindings = Enumerable.Repeat(97, count).ToArray();
             var expected = Read(jrpPath);
             var expectedViewer = expected["Feature"]!["KeyViewer"]!["Setting"]!;
             expectedViewer["KeyViewerStyle"] = nativeStyle;
             expectedViewer[$"key{count}"] = new JsonArray(bindings.Select(k => (JsonNode)JsonValue.Create(k)!).ToArray());
             var saved = setup.SaveKeys([jrp], bindings, count);
-            check(saved.Style == count && saved.Layouts[count].SequenceEqual(bindings), $"Key{count} bindings round trip with the native enum");
+            check(saved.Style == count && saved.Layouts[count].SequenceEqual(bindings), $"Duplicate Key{count} bindings round trip with the native enum");
             check(JsonNode.DeepEquals(Read(jrpPath), expected), $"Key{count} saves preserve all other settings and layouts");
         }
         setup.SaveKeys([jrp], edited, 10);
@@ -63,7 +64,6 @@ internal static class ModDefaultsChecks
         foreach (var count in new[] { 4, 8, 10, 12, 16 })
         {
             reject(() => setup.SaveKeys([jrp], [1, 2], count), $"Reject truncated Key{count} arrays");
-            reject(() => setup.SaveKeys([jrp], Enumerable.Repeat(97, count).ToArray(), count), $"Reject duplicate guided Key{count} bindings");
         }
         reject(() => setup.SaveKeys([jrp], edited, 11), "Reject an unsupported key viewer style");
         reject(() => setup.SaveKeys([jrp], Enumerable.Range(97, 20).ToArray(), 20), "Key20 is no longer selectable");
@@ -104,8 +104,9 @@ internal static class ModDefaultsChecks
         {
             var bindings = setup.LoadKeys([jrp]).Layouts[count];
             bindings[0] = 500 + count;
+            bindings[1] = bindings[0];
             var saved = setup.SaveKeys([jrp, kcb], bindings, count);
-            check(saved.Style == count, $"Select Key{count} while chatter is installed");
+            check(saved.Style == count && saved.Layouts[count].SequenceEqual(bindings), $"Save duplicate Key{count} bindings while chatter is installed");
             var allowed = Read(kcbPath)["keyLimiterProfiles"]![1]!["allowedKeys"]!.AsArray().Select(k => k!.GetValue<int>());
             var expectedAllowed = bindings.Concat(new[] { 289, 284, 288, 283, 287, 282 }).Distinct();
             check(allowed.SequenceEqual(expectedAllowed), $"Key{count} updates the limiter with hand and foot keys, removing duplicates");

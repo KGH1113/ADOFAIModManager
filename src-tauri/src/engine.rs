@@ -20,6 +20,8 @@ pub struct EngineRequest {
     pub preset_values: Option<[bool; 3]>,
     pub key_bindings: Option<Vec<i32>>,
     pub key_viewer_style: Option<u8>,
+    pub shortcut_key: Option<String>,
+    pub shortcut_modifiers: Option<u8>,
 }
 
 #[derive(Debug, Deserialize, serde::Serialize)]
@@ -41,6 +43,8 @@ pub enum Action {
     Onboardingsetup,
     Jrpkeys,
     Savejrpkeys,
+    Ummshortcut,
+    Saveummshortcut,
 }
 
 pub async fn run(
@@ -75,6 +79,7 @@ pub async fn run(
         "forcePayload": request.force_payload, "presetKind": request.preset_kind,
         "presetValues": request.preset_values,
         "keyBindings": request.key_bindings, "keyViewerStyle": request.key_viewer_style,
+        "shortcutKey": request.shortcut_key, "shortcutModifiers": request.shortcut_modifiers,
     });
     let mut command = Command::new(executable);
     command

@@ -70,6 +70,7 @@ export function createMockApi(): AppApi {
   }));
   let current: PreviewMod = items[1];
   let keyBindings: JrpKeyBindings = { style: 10, layouts: copyKeyLayouts(defaultKeyLayouts) };
+  let ummShortcut = { keyCode: "F10", modifiers: 1 };
   const archives = new Map<string, PreviewMod>();
   const resolveArchive = (source: { token?: string }) =>
     source.token ? (archives.get(source.token) ?? current) : current;
@@ -87,6 +88,11 @@ export function createMockApi(): AppApi {
       },
     },
     mods: {
+      loadUmmShortcut: async () => ({ ...ummShortcut }),
+      saveUmmShortcut: async (_, shortcut) => {
+        ummShortcut = { ...shortcut };
+        return { ...ummShortcut };
+      },
       configureOnboarding: async () => {},
       loadJrpKeys: async () => ({ ...keyBindings, layouts: copyKeyLayouts(keyBindings.layouts) }),
       saveJrpKeys: async (_, keys, style) => {

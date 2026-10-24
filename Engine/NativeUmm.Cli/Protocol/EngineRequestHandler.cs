@@ -37,6 +37,8 @@ internal sealed class EngineRequestHandler(
         bool[] presetValues;
         int[] keyBindings;
         int keyViewerStyle;
+        string? shortcutKey;
+        int shortcutModifiers;
 
         using (var doc = JsonDocument.Parse(requestJson))
         {
@@ -59,6 +61,8 @@ internal sealed class EngineRequestHandler(
                 ? kb.EnumerateArray().Select(value => value.GetInt32()).ToArray() : [];
             keyViewerStyle = root.TryGetProperty("keyViewerStyle", out var ks) && ks.ValueKind == JsonValueKind.Number
                 ? ks.GetInt32() : 10;
+            shortcutKey = root.TryGetProperty("shortcutKey", out var sk) ? sk.GetString() : null;
+            shortcutModifiers = root.TryGetProperty("shortcutModifiers", out var sm) && sm.ValueKind == JsonValueKind.Number ? sm.GetInt32() : 0;
             if (root.TryGetProperty("urls", out var arr) && arr.ValueKind == JsonValueKind.Array)
                 foreach (var item in arr.EnumerateArray())
                 {
@@ -75,13 +79,32 @@ internal sealed class EngineRequestHandler(
                 error: "A Dance of Fire and Ice was not found. Select the game application or folder.");
 
         var bundledVersion = BundledVersion(payloadDir);
-        if (action is "install" or "remove" or "restore" or "installmod" or "installmods" or "setmodenabled" or "uninstallmod" or "restoremod" or "removemod" or "savepreset" or "onboardingsetup" or "savejrpkeys")
+        if (action is "install" or "remove" or "restore" or "installmod" or "installmods" or "setmodenabled" or "uninstallmod" or "restoremod" or "removemod" or "savepreset" or "onboardingsetup" or "savejrpkeys" or "saveummshortcut")
         {
             if (processProbe.IsRunning()) throw new InvalidOperationException("game_running");
         }
 
         switch (action)
         {
+            case "ummshortcut":
+            case "saveummshortcut":
+                var shortcuts = new UmmShortcutService();
+                var shortcut = action == "saveummshortcut"
+                    ? shortcuts.Save(layout.ManagerPath, shortcutKey ?? "", shortcutModifiers)
+                    : shortcuts.Load(layout.ManagerPath);
+                var shortcutBuffer = new ArrayBufferWriter<byte>();
+                using (var writer = new Utf8JsonWriter(shortcutBuffer))
+                {
+                    writer.WriteStartObject();
+                    writer.WriteBoolean("ok", true);
+                    writer.WriteBoolean("detected", true);
+                    writer.WriteStartObject("ummShortcut");
+                    writer.WriteString("keyCode", shortcut.KeyCode);
+                    writer.WriteNumber("modifiers", shortcut.Modifiers);
+                    writer.WriteEndObject();
+                    writer.WriteEndObject();
+                }
+                return Encoding.UTF8.GetString(shortcutBuffer.WrittenSpan);
             case "status":
                 break;
             case "install":

@@ -17,6 +17,21 @@ function client(invoke: DesktopClient["invoke"]): DesktopClient {
   };
 }
 describe("native API adapters", () => {
+  it("round trips the UMM shortcut through native settings", async () => {
+    const ummShortcut = { keyCode: "K", modifiers: 3 };
+    const invoke = vi.fn(async () => ({ ok: true, detected: true, ummShortcut }));
+    const api = createProductionApi(client(invoke));
+    expect(await api.mods.loadUmmShortcut("/game")).toEqual(ummShortcut);
+    expect(await api.mods.saveUmmShortcut("/game", ummShortcut)).toEqual(ummShortcut);
+    expect(invoke).toHaveBeenLastCalledWith("engine_request", {
+      request: {
+        action: "saveummshortcut",
+        gamePath: "/game",
+        shortcutKey: "K",
+        shortcutModifiers: 3,
+      },
+    });
+  });
   it.each(keyViewerStyles)(
     "round trips Key%i bindings with the explicit selected style",
     async (style) => {

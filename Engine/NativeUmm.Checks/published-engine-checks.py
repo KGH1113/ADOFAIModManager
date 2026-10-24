@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory(prefix="amm-aot-settings-", dir="/private/tmp")
     mods = root / "Mods"
     for identifier, version in [
         ("JipperResourcePack", "1.5.2.0"),
-        ("KeyboardChatterBlocker", "0.1.2"),
+        ("KeyboardChatterBlocker", "0.1.3"),
         ("TUFHelper", "3.1.1"),
         ("EnhancedCountdown", "0.2.3"),
     ]:
@@ -60,14 +60,21 @@ with tempfile.TemporaryDirectory(prefix="amm-aot-settings-", dir="/private/tmp")
 
     check(request("onboardingsetup", presetKind="jrp-defaults")["ok"], "AOT JRP defaults")
     check(request("onboardingsetup", presetKind="chatter-defaults")["ok"], "AOT chatter defaults")
+    chatter_info = mods / "KeyboardChatterBlocker/Info.json"
+    metadata = json.loads(chatter_info.read_text())
+    metadata["Version"] = "9.9.9"
+    chatter_info.write_text(json.dumps(metadata))
+    check(request("onboardingsetup", presetKind="chatter-defaults")["ok"],
+          "AOT chatter defaults accept arbitrary mod versions")
+    check(request("onboardingsetup", presetKind="jrp-key-sync")["ok"],
+          "AOT explicit key synchronization accepts arbitrary KCB versions")
     loaded = request("jrpkeys")["keyBindings"]
     check(loaded["style"] == 10 and {int(key): len(value) for key, value in loaded["layouts"].items()}
-          == {10: 10, 12: 12, 16: 16, 20: 20}, "AOT active style and all layouts read")
-    for count, native_style in [(10, 3), (12, 0), (16, 1), (20, 2)]:
+          == {4: 4, 8: 8, 10: 10, 12: 12, 16: 16}, "AOT active style and all layouts read")
+    for count, native_style in [(4, 4), (8, 5), (10, 3), (12, 0), (16, 1)]:
         before = request("jrpkeys")["keyBindings"]["layouts"]
         edited = list(range(97, 97 + count))
-        if count == 20:
-            edited[16] = edited[12]
+        edited[1] = edited[0]
         saved = request("savejrpkeys", keyBindings=edited, keyViewerStyle=count)
         expected = {**before, str(count): edited}
         check(saved.get("keyBindings") == {"style": count, "layouts": expected},
@@ -80,7 +87,7 @@ with tempfile.TemporaryDirectory(prefix="amm-aot-settings-", dir="/private/tmp")
         check(chatter["inputInterval"] == 35 and chatter["enableKeyLimiter"]
               and profile["allowedKeys"] == list(dict.fromkeys(edited)),
               f"AOT Key{count} limiter synchronization and free-key deduplication")
-        for invalid in [[97] * count, edited[:-1]]:
+        for invalid in [edited[:-1], [*edited[:-1], 0x11000]]:
             rejected = request("savejrpkeys", keyBindings=invalid, keyViewerStyle=count)
             check(not rejected["ok"], f"AOT invalid Key{count} binding rejection")
             check(request("jrpkeys")["keyBindings"] == {"style": count, "layouts": expected},

@@ -1,12 +1,20 @@
-import { useCallback, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsPresent } from "motion/react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useApi } from "@/api/app-api-provider";
 import { useManager } from "@/app/manager-provider";
 import alphaImage from "@/assets/onboarding/steam-alpha.png";
 import propertiesImage from "@/assets/onboarding/steam-properties.png";
-import { GameSetupCard } from "@/components/installation/game-setup-card";
 import { PreviewVideo } from "@/components/onboarding/preview-video";
+import {
+  captureUmmShortcut,
+  defaultUmmShortcut,
+  shortcutLabels,
+} from "@/models/onboarding/umm-shortcut";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { runOperation } from "@/state/operations/operations-store";
 
 export function AlphaGuide({ next }: { next(): void }) {
   const { t } = useTranslation();
@@ -51,18 +59,22 @@ export function AlphaGuide({ next }: { next(): void }) {
         </figure>
       </div>
       {!game.data?.detected && (
-        <GameSetupCard
-          compact
-          installation={game.data}
-          busy={locked}
-          loading={game.isFetching}
-          choose={() => {
-            void game.chooseGame();
-          }}
-          refresh={() => {
-            void game.refresh();
-          }}
-        />
+        <div className="alpha-game-location">
+          <p>{t("onboarding.game.chooseHint")}</p>
+          <Button size="small" disabled={locked} onClick={() => void game.chooseGame()}>
+            <Icon name="folder" size={16} />
+            {t("onboarding.game.choose")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={locked || game.isFetching}
+            aria-label={t("common.refresh")}
+            onClick={() => void game.refresh()}
+          >
+            <Icon name="refresh" className={game.isFetching ? "animate-spin" : ""} />
+          </Button>
+        </div>
       )}
       <div className="alpha-guide-footer">
         <Button variant="ghost" disabled={locked} onClick={next}>
@@ -83,7 +95,58 @@ export function AlphaGuide({ next }: { next(): void }) {
 
 export function ModSettingsGuide({ next }: { next(): void }) {
   const { t } = useTranslation();
-  const { locked } = useManager();
+  const { game, locked } = useManager();
+  const api = useApi();
+  const cache = useQueryClient();
+  const present = useIsPresent();
+  const path = game.path;
+  const query = useQuery({
+    queryKey: ["ummShortcut", path],
+    queryFn: () => api.mods.loadUmmShortcut(path as string),
+    enabled: !!path,
+    retry: false,
+  });
+  const [listening, setListening] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const disabled = locked || !!game.data?.gameRunning || !query.data;
+  const labels = shortcutLabels(query.data ?? defaultUmmShortcut);
+  useEffect(() => {
+    if (!listening || disabled || !present || !path) return;
+    const cancel = () => setListening(false);
+    const capture = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.repeat) return;
+      if (event.code === "Escape") {
+        cancel();
+        return;
+      }
+      if (/^(Control|Shift|Alt|Meta)(Left|Right)$/.test(event.code)) return;
+      const shortcut = captureUmmShortcut(event);
+      if (!shortcut) {
+        setMessage("onboarding.shortcut.unsupported");
+        return;
+      }
+      cancel();
+      setMessage(null);
+      void runOperation("onboarding.shortcut.saving", async () => {
+        try {
+          const saved = await api.mods.saveUmmShortcut(path, shortcut);
+          cache.setQueryData(["ummShortcut", path], saved);
+          setMessage("onboarding.shortcut.saved");
+        } catch {
+          setMessage("onboarding.shortcut.failed");
+          throw new Error("onboarding.shortcut.failed");
+        }
+      });
+    };
+    window.addEventListener("keydown", capture, true);
+    window.addEventListener("blur", cancel);
+    return () => {
+      window.removeEventListener("keydown", capture, true);
+      window.removeEventListener("blur", cancel);
+    };
+  }, [listening, disabled, present, path, api, cache]);
   const [pressed, setPressed] = useState(0);
   const syncShortcut = useCallback((time: number) => {
     // Source video is 60fps. The preview starts at 144F and UMM opens at 177F:
@@ -106,10 +169,52 @@ export function ModSettingsGuide({ next }: { next(): void }) {
             }
           />
         </div>
-        <div className="shortcut-preview">
-          <kbd data-pressed={pressed >= 1}>Ctrl</kbd>
-          <span aria-hidden="true">+</span>
-          <kbd data-pressed={pressed === 2}>F10</kbd>
+        <div className="shortcut-editor">
+          <button
+            type="button"
+            className="shortcut-preview"
+            data-listening={listening && !disabled}
+            aria-label={t("onboarding.shortcut.change", { shortcut: labels.join(" + ") })}
+            aria-describedby="shortcut-help"
+            aria-pressed={listening && !disabled}
+            disabled={disabled}
+            onBlur={() => setListening(false)}
+            onClick={() => {
+              setListening((value) => !value);
+              setMessage(null);
+            }}
+          >
+            {labels.map((label, index) => (
+              <Fragment key={label}>
+                {index > 0 && <span aria-hidden="true">+</span>}
+                <kbd
+                  data-pressed={
+                    !listening && (index < labels.length - 1 ? pressed >= 1 : pressed === 2)
+                  }
+                >
+                  {label}
+                </kbd>
+              </Fragment>
+            ))}
+          </button>
+          <p id="shortcut-help" className="shortcut-help" role="status">
+            {t(
+              game.data?.gameRunning
+                ? "onboarding.umm.quitGame"
+                : listening && !disabled
+                  ? (message ?? "onboarding.shortcut.listening")
+                  : query.isError
+                    ? "onboarding.shortcut.loadFailed"
+                    : query.isPending
+                      ? "onboarding.shortcut.loading"
+                      : (message ?? "onboarding.shortcut.hint"),
+            )}
+          </p>
+          {query.isError && (
+            <Button variant="ghost" size="small" onClick={() => void query.refetch()}>
+              {t("onboarding.keys.retry")}
+            </Button>
+          )}
         </div>
       </div>
       <div className="mod-settings-copy">
@@ -118,7 +223,7 @@ export function ModSettingsGuide({ next }: { next(): void }) {
           <h1 id="onboarding-title" tabIndex={-1}>
             {t("onboarding.modSettings.title")}
           </h1>
-          <p>{t("onboarding.modSettings.description")}</p>
+          <p>{t("onboarding.modSettings.description", { shortcut: labels.join(" + ") })}</p>
         </div>
         <p className="mod-settings-hint">{t("onboarding.modSettings.configure")}</p>
         <Button variant="primary" disabled={locked} onClick={next}>

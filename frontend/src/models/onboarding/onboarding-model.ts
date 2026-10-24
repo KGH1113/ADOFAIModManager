@@ -78,7 +78,6 @@ export const recommendations = {
     installedId: "TUFHelperLite",
     name: "TUFHelperLite",
     slug: "tufhelperlite",
-    dependencies: ["ipc"],
   },
   tuf: { installedId: "TUFHelper", name: "TUFHelper", slug: "tufhelper" },
   countdown: {
