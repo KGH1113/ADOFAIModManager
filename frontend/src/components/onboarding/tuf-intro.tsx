@@ -77,6 +77,7 @@ export function TufIntro({ next, disabled = false }: { next(): void; disabled?: 
           onClick={() => go(index - 1)}
         >
           <Icon name="left" size={28} />
+          <span aria-hidden="true">{t(`${copy}.previousAction`)}</span>
         </button>
         <div className="tuf-slide-viewport">
           <AnimatePresence initial={false} mode="wait" custom={direction}>
@@ -164,13 +165,14 @@ export function TufIntro({ next, disabled = false }: { next(): void; disabled?: 
         </div>
         <button
           type="button"
-          className={`tuf-chevron${last ? " tuf-chevron-finish" : ""}`}
+          className="tuf-chevron tuf-chevron-next"
           aria-label={t(`${copy}.${last ? "finish" : "next"}`)}
           title={last ? t(`${copy}.finish`) : undefined}
           disabled={disabled}
           onClick={() => (last ? next() : go(index + 1))}
         >
           <Icon name="right" size={28} />
+          <span aria-hidden="true">{t(`${copy}.${last ? "finishAction" : "nextAction"}`)}</span>
         </button>
       </section>
 

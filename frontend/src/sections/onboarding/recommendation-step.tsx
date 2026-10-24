@@ -119,7 +119,7 @@ export function RecommendationStep({
           <div>
             <InstallButton modKey={kind} flow={flow} />
             <Button
-              variant="ghost"
+              variant={installed ? "primary" : "ghost"}
               disabled={locked}
               onClick={() => {
                 next();

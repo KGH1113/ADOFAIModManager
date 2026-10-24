@@ -19,6 +19,8 @@ Directional slide transitions and responsive difficulty emblems respect reduced 
 
 `tufIntro` sits immediately before `tuf`. Korean, English, and Chinese translations have matching keys and direct, factual headings.
 
+The slideshow chevrons have persistent button surfaces and borders, visible short Previous/Next labels, and at least 44px-wide targets. The forward control uses the lime accent. Hover, press and focus states are distinct, and unavailable navigation stays dimmed. Narrow layouts reserve enough room for both the controls and translated content.
+
 - `bun run check`: TypeScript, Biome, 5 script tests and 115 Vitest tests passed. One existing non-null-assertion warning remains in `umm-shortcut.test.ts`.
 - `bun run frontend:build`: passed, with existing dependency annotation and bundle-size warnings.
 - The final hint-placement adjustment passed the 8 introduction tests and 2 localization tests again.

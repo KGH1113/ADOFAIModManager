@@ -12,7 +12,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  padding-inline: 58px;
+  padding-inline: 68px;
 }
 .tuf-intro-wordmark,
 .tuf-slide-eyebrow {
@@ -40,37 +40,59 @@
 }
 .tuf-presentation {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
-  gap: 14px;
+  grid-template-columns: 56px minmax(0, 1fr) 56px;
+  gap: 12px;
   min-height: 0;
 }
 .tuf-chevron {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   align-self: center;
-  height: 64px;
-  border: 0;
+  min-height: 76px;
+  padding: 10px 3px;
+  border: 1px solid var(--input);
   border-radius: 12px;
-  background: transparent;
-  color: var(--muted-foreground);
+  background: var(--secondary);
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 1.2;
+  white-space: nowrap;
   transition:
     color 160ms,
     background 160ms,
+    border-color 160ms,
     transform 160ms;
 }
 .tuf-chevron:hover:not(:disabled) {
-  color: var(--foreground);
-  background: var(--secondary);
+  background: var(--popover);
+  border-color: var(--muted-foreground);
+  transform: translateY(-2px);
+}
+.tuf-chevron:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
 }
 .tuf-chevron:active:not(:disabled) {
   transform: scale(0.94);
 }
 .tuf-chevron:disabled {
-  opacity: 0.2;
+  background: transparent;
+  color: var(--muted-foreground);
+  opacity: 0.35;
 }
-.tuf-chevron-finish {
+.tuf-chevron-next {
   color: var(--brand-text);
+  border-color: var(--brand-border);
   background: var(--brand-selected);
+}
+.tuf-chevron-next:hover:not(:disabled) {
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  background: var(--primary);
 }
 .tuf-slide-viewport {
   min-width: 0;
@@ -444,10 +466,11 @@
   color: var(--muted-foreground);
   font-size: 10px;
 }
-.tuf-rating-context :where(.tuf-difficulty-footnote) {
+.tuf-rating-context .tuf-difficulty-footnote {
   text-align: left;
   color: var(--muted-foreground);
   font-size: 10px;
+  line-height: 1.6;
 }
 .tuf-special-options {
   display: grid;
@@ -587,10 +610,10 @@
 }
 @media (max-width: 1050px) {
   .tuf-intro-heading {
-    padding-inline: 40px;
+    padding-inline: 52px;
   }
   .tuf-presentation {
-    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
     gap: 8px;
   }
   .tuf-slide-home {
@@ -618,15 +641,20 @@
     font-size: 24px;
   }
   .tuf-presentation {
-    grid-template-columns: 24px minmax(0, 1fr) 24px;
-    gap: 4px;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 6px;
+  }
+  .tuf-chevron {
+    min-height: 68px;
+    border-radius: 10px;
+    font-size: 10px;
   }
   .tuf-slide-viewport {
     border-radius: 12px;
   }
   .tuf-slide-home {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 0.95fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 0.75fr) minmax(0, 1.25fr);
   }
   .tuf-home-copy {
     padding: 14px 18px;
@@ -709,6 +737,9 @@
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 1fr) 160px;
     gap: 16px;
+  }
+  .tuf-difficulty[data-mode="quantum"] .tuf-difficulty-panel {
+    grid-template-rows: minmax(0, 1fr) 200px;
   }
   .tuf-difficulty-emblem > img {
     height: 100%;
