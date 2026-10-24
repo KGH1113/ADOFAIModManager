@@ -23,7 +23,7 @@ GitHub 저장소의 Actions secrets에 다음 값을 등록한다.
 | `TAURI_SIGNING_PRIVATE_KEY` | `.local/updater.key` 파일의 전체 내용. 파일 경로가 아님 |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 현재 키는 암호가 없으므로 생략 가능 |
 
-이 변경은 로컬 구현이며, GitHub secret 등록이나 릴리스 게시는 실행하지 않았다. 기존 배포 앱에는 업데이터가 없으므로 업데이터가 포함된 버전을 한 번 직접 설치해야 한다.
+`TAURI_SIGNING_PRIVATE_KEY`는 저장소 Secret에 등록됐으며 실제 GitHub Actions에서 세 운영체제의 서명된 파일 생성에 사용했다. 기존 배포 앱에는 업데이터가 없으므로 업데이터가 포함된 버전을 한 번 직접 설치해야 한다.
 
 업데이트용 키는 운영체제의 코드 서명 인증서와 별개다. macOS는 ad-hoc 서명을 사용하며, macOS 실행 허용이나 Windows SmartScreen 경고가 남을 수 있다.
 
@@ -34,6 +34,10 @@ GitHub 저장소의 Actions secrets에 다음 값을 등록한다.
 3. Release 워크플로가 검사 후 macOS ARM64, Windows x64, Linux x64용 파일을 빌드한다. `tauri.release.conf.json`을 적용하는 릴리스 빌드에서만 업데이트 아티팩트 서명이 필요하다.
 4. 모든 빌드가 성공하면 서명 파일과 `latest.json`을 합쳐 **초안 릴리스**를 만든다. 불완전한 플랫폼 구성은 거부한다. 생성된 릴리스 노트는 앱의 변경 사항에도 포함된다.
 5. 각 OS에서 이전 버전 → 후보 버전으로 설치·재시작을 검증한 뒤 초안을 정식 최신 릴리스로 공개한다. 사전 릴리스로 게시하면 정식 업데이트 채널에는 노출되지 않는다.
+
+`ci.yml`은 프런트엔드 타입·스타일·테스트·빌드를 한 번 실행하고, Windows/macOS/Linux에서 엔진 검사, 배포 엔진 프로토콜 검사, Rust 포맷·테스트를 실행한다. 설치 파일 패키징과 서명은 `release.yml`에서만 실행한다. CI에서는 무거운 UI 테스트가 공유 러너에서 경합하지 않도록 worker 수를 제한한다.
+
+릴리스 파일명은 업로드 전에 공백 등을 점으로 정규화한다. GitHub가 파일명을 변경해 manifest의 다운로드 URL이 깨지지 않도록, 업로드 후 실제 파일명·크기·서명 파일·다운로드 URL을 대조한다. 초안의 `untagged-*` URL은 공개 시 실제 버전 태그로 바뀌는 점도 검증에 반영한다.
 
 앱은 `https://github.com/KGH1113/ADOFAIModManager/releases/latest/download/latest.json`을 확인한다. 저장소를 이전하면 이 주소와 릴리스 생성 설정을 함께 검토해야 한다.
 
@@ -54,8 +58,13 @@ GitHub 저장소의 Actions secrets에 다음 값을 등록한다.
 ## 이번 구현의 검증 결과
 
 - 프런트엔드 타입 검사와 테스트 126개 통과. 기존 `umm-shortcut.test.ts`의 non-null assertion 경고 1개는 남아 있다.
-- 릴리스 manifest 테스트 3개, Rust 테스트 10개 통과. 외부 TUF API를 사용하는 기존 Rust 테스트 4개는 기본 설정대로 제외했다.
+- 릴리스 manifest 테스트 4개, Rust 테스트 10개 통과. 외부 TUF API를 사용하는 기존 Rust 테스트 4개는 기본 설정대로 제외했다.
 - 프런트엔드 프로덕션 빌드와 GitHub Actions `actionlint` 검사 통과.
 - macOS ARM64 릴리스 앱, 약 93 MB의 업데이트 압축 파일과 `.sig` 생성 성공. 공개 키 일치, 비밀 키 파일 권한 600, 서명의 앱 버전 포함을 확인했다.
-- 브라우저 연결이 제공되지 않아 실제 브라우저 시각 검사는 진행하지 못했다. 설정 및 업데이트 UI는 컴포넌트 테스트로 검증했다.
-- Windows/Linux 실물 설치, macOS에서 이전 설치본을 실제 교체하고 재시작하는 과정, GitHub 워크플로 실행은 아직 검증하지 않았다.
+- [CI 실행 40105581743](https://github.com/KGH1113/ADOFAIModManager/actions/runs/40105581743): 프런트엔드와 Windows/macOS/Linux 네이티브 검사 모두 성공.
+- [Release 실행 40105680371](https://github.com/KGH1113/ADOFAIModManager/actions/runs/40105680371): 세 OS 빌드·서명, v0.2.0 초안 생성, 업로드 URL 검증 성공.
+- macOS 실앱 E2E: 별도 식별자의 `0.1.99` 테스트 앱이 임시 GitHub 사전 릴리스에서 실제 CI 산출물을 받았다. E2E 전용 프런트엔드 빌드 모드만 확인 주기를 5초로 줄이며 일반 배포본은 30분을 유지한다.
+- 업데이트 서버가 없는 상태에서 정상 화면 진입, 잘못된 서명의 설치 거부, 실행 중 다운로드 및 `Version 0.2.0 is ready` 표시, 버튼을 통한 실제 파일 교체를 확인했다.
+- 시작 시 자동 업데이트도 실제 파일을 `0.2.0`으로 교체하고 정식 앱 식별자의 프로세스를 실행했다. 네이티브 UI 도구가 업데이트 후 창 연결에 실패해 마지막 화면 재확인은 별도 검증이 필요하다.
+- 초기 테스트 대상 실행 파일 SHA-256: `977c0c635dfdf898c1ca8b2d0b6f1b27d8ff8a726b9d1be8b6982498b27cd662`. 두 테스트 복사본 모두 설치 후 동일한 해시를 확인했다. 시작 전 구버전 해시는 `11f856507c6fd657b26a1753d74353e89500adad2f6b039a1b9205d4b6dbd8cf`였다.
+- Windows/Linux는 실제 CI 빌드·테스트에 성공했지만, 해당 OS에서 설치된 앱을 교체하는 GUI E2E는 아직 수행하지 않았다.

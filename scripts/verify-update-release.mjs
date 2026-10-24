@@ -7,7 +7,7 @@ export function verifyManifest(manifest, release) {
   for (const [platform, update] of Object.entries(manifest.platforms)) {
     const url = new URL(update.url);
     const asset = release.assets.find((item) => item.name === url.pathname.split("/").at(-1));
-    if (!asset || asset.state !== "uploaded" || asset.size === 0) {
+    if (asset?.state !== "uploaded" || asset.size === 0) {
       throw new Error(`Update URL does not match an uploaded asset: ${platform} ${update.url}`);
     }
     // Draft asset URLs use an untagged-* placeholder until publication. Compare
