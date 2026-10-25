@@ -946,6 +946,14 @@ input[type="checkbox"]:disabled {
   inset: 0;
   border-radius: 14px;
 }
+.catalog-installed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--brand-text);
+  font-size: 11px;
+  font-weight: 500;
+}
 .catalog-pinned {
   display: inline-flex;
   padding: 1px 6px;
@@ -1046,8 +1054,24 @@ input[type="checkbox"]:disabled {
   font-size: 11px;
   gap: 5px;
 }
-.catalog-card-actions .button-primary {
+.catalog-card-actions .catalog-install-action {
   flex: 1;
+}
+.button.catalog-install-complete:disabled {
+  opacity: 1;
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--foreground) 2%, transparent);
+  color: var(--muted-foreground);
+  font-weight: 500;
+  cursor: default;
+}
+.catalog-install-complete > svg {
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--brand-selected);
+  color: var(--brand-text);
 }
 .catalog-skeleton {
   min-height: 360px;

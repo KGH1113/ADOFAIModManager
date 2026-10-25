@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useManager } from "@/app/manager-provider";
 import { CatalogCard } from "@/components/catalog/catalog-card";
@@ -6,6 +6,7 @@ import { CatalogDetail } from "@/components/catalog/catalog-detail";
 import { PageTitle } from "@/components/layout/page-title";
 import { useCatalog } from "@/hooks/catalog/use-catalog";
 import type { CatalogSort } from "@/models/catalog/catalog-model";
+import { installedCatalogMods } from "@/models/mods/mod-updates";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Icon } from "@/shared/ui/icon";
@@ -15,6 +16,10 @@ export function CatalogPage() {
   const { t } = useTranslation();
   const catalog = useCatalog();
   const { game, imports, locked } = useManager();
+  const installed = useMemo(
+    () => installedCatalogMods(game.data?.mods ?? [], catalog.data ?? []),
+    [game.data?.mods, catalog.data],
+  );
   const listRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -171,6 +176,7 @@ export function CatalogPage() {
                   download={() => void imports.fromCatalog(mod)}
                   canDownload={canDownload}
                   downloading={imports.download?.id === mod.id}
+                  installed={installed.get(mod.id)}
                 />
               ))}
             </div>
@@ -185,6 +191,7 @@ export function CatalogPage() {
           key={catalog.selected.id}
           mod={catalog.selected}
           detail={catalog.detail}
+          installed={installed.get(catalog.selected.id)}
           back={back}
         />
       )}

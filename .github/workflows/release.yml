@@ -101,7 +101,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f "tag_name=$RELEASE_TAG" --jq .body > release-notes.md
+        run: |
+          notes="docs/releases/${RELEASE_TAG#v}.md"
+          if [ -f "$notes" ]; then
+            cp "$notes" release-notes.md
+          else
+            gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f "tag_name=$RELEASE_TAG" --jq .body > release-notes.md
+          fi
       - name: Assemble complete update manifest
         env:
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}

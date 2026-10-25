@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { CatalogMod } from "@/models/catalog/catalog-model";
+import type { InstalledMod } from "@/models/installation/installation-model";
+import { sameModVersion } from "@/models/mods/mod-updates";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 
@@ -44,14 +46,17 @@ export function CatalogCard({
   download,
   canDownload,
   downloading,
+  installed,
 }: {
   mod: CatalogMod;
   open(): void;
   download(): void;
   canDownload: boolean;
   downloading: boolean;
+  installed?: InstalledMod;
 }) {
   const { t, i18n } = useTranslation();
+  const current = !!installed && sameModVersion(installed.version, mod.version);
   const description = mod.description
     .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
@@ -117,14 +122,18 @@ export function CatalogCard({
       )}
       <footer className="catalog-card-actions">
         <Button
-          variant="primary"
+          variant={current ? "secondary" : "primary"}
+          className={`catalog-install-action${current ? " catalog-install-complete" : ""}`}
           size="small"
-          disabled={!canDownload || !mod.url}
+          title={
+            current ? t("catalog.installedVersion", { version: installed.version }) : undefined
+          }
+          disabled={!canDownload || !mod.url || current}
           pending={downloading}
           onClick={download}
         >
-          <Icon name="download" size={16} />
-          {t("catalog.download")}
+          <Icon name={current ? "check" : "download"} size={16} />
+          {t(current ? "catalog.installed" : "catalog.download")}
         </Button>
         <Button size="small" onClick={open}>
           {t("operation.details")}

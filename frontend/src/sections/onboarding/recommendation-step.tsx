@@ -113,7 +113,9 @@ export function RecommendationStep({
             <p>{t(`onboarding.recommend.${kind}.description`)}</p>
           </div>
         </div>
-        <p className="recommendation-note">{t(`onboarding.recommend.${kind}.note`)}</p>
+        {kind === "jrp" && (
+          <p className="recommendation-note">{t("onboarding.recommend.jrp.note")}</p>
+        )}
         <Progress flow={flow} />
         <footer className="recommendation-actions">
           <div>

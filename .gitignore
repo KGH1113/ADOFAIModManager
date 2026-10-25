@@ -26,6 +26,8 @@ node_modules/
 /.idea/
 
 # Local logs and temporary files
+/output/
+/.playwright-cli/
 /JipperResourcePack/
 *.log
 *.tmp

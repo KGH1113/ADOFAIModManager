@@ -49,6 +49,46 @@ function mount(api = createMockApi()) {
 }
 
 describe("mod catalog journeys", () => {
+  it("detects a preinstalled mod from local metadata and only blocks its installed version", async () => {
+    const api = createMockApi();
+    const state = await api.installation.load(gamePath);
+    const catalog = await api.catalog.list();
+    const chatter = catalog.find((mod) => mod.id === "keyboardchatterblocker");
+    if (!chatter) throw new Error("Missing preview mod");
+    vi.spyOn(api.installation, "load").mockResolvedValue({
+      ...state,
+      mods: [
+        {
+          id: "KeyboardChatterBlocker",
+          name: "Keyboard Chatter Blocker",
+          version: chatter.version,
+          installed: true,
+          enabled: false,
+          status: "OK",
+          path: "/Mods/kcb",
+          requirements: [],
+        },
+      ],
+    });
+    const download = vi.spyOn(api.catalog, "download");
+    mount(api);
+    const user = userEvent.setup();
+    const card = await screen.findByRole("article", { name: chatter.name });
+    const installedButton = await within(card).findByRole("button", { name: "Installed" });
+    expect(installedButton.hasAttribute("disabled")).toBe(true);
+    await user.click(installedButton);
+    expect(download).not.toHaveBeenCalled();
+    await user.click(within(card).getByRole("button", { name: chatter.name }));
+    expect(await screen.findByText(`Installed version: ${chatter.version}`)).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Installed" }).hasAttribute("disabled")).toBe(true),
+    );
+    await user.click(screen.getByRole("combobox", { name: "Version" }));
+    await user.click(await screen.findByRole("option", { name: "0.1.2" }));
+    expect(
+      screen.getByRole("button", { name: "Download and install" }).hasAttribute("disabled"),
+    ).toBe(false);
+  });
   it("reveals cards in batches, preserves the window after details, and resets it for search", async () => {
     let intersect: IntersectionObserverCallback = () => {};
     const disconnect = vi.fn();

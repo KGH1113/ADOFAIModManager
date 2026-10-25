@@ -33,6 +33,7 @@ async function reachSlide(user: ReturnType<typeof userEvent.setup>, index: numbe
     "Browse and download levels",
     "TUF difficulty system",
     "Clear submissions and scoring",
+    "Community and resources",
   ];
   for (const title of titles.slice(1, index + 1)) {
     await user.click(screen.getByRole("button", { name: "Next slide" }));
@@ -41,6 +42,24 @@ async function reachSlide(user: ReturnType<typeof userEvent.setup>, index: numbe
 }
 
 describe("TUF introduction", () => {
+  it("opens community and resource links, and locks them during operations", async () => {
+    const { api, setDisabled } = mount();
+    const openUrl = vi.spyOn(api.desktop, "openUrl").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    await reachSlide(user, 4);
+    const discord = screen.getByRole("button", { name: "Join Discord server" });
+    const resources = screen.getByRole("button", { name: "Open TUF resources" });
+    await user.click(discord);
+    await waitFor(() => expect(openUrl).toHaveBeenCalledWith("https://discord.gg/TKdpbUUfUa"));
+    await user.click(resources);
+    await waitFor(() => expect(openUrl).toHaveBeenCalledWith("https://tuforums.com/resources"));
+    setDisabled(true);
+    await user.click(discord);
+    await user.click(resources);
+    expect(discord.hasAttribute("disabled")).toBe(true);
+    expect(resources.hasAttribute("disabled")).toBe(true);
+    expect(openUrl).toHaveBeenCalledTimes(2);
+  });
   it("navigates with chevrons and arrow keys", async () => {
     mount();
     const user = userEvent.setup();
@@ -51,17 +70,17 @@ describe("TUF introduction", () => {
 
     await user.click(screen.getByRole("button", { name: "Next slide" }));
     await screen.findByRole("heading", { name: "Browse and download levels" });
-    expect(screen.getByRole("group", { name: "2 of 4: Discover" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "2 of 5: Discover" })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Previous slide" }));
     await screen.findByRole("heading", { name: "What is TUF?" });
 
-    await reachSlide(user, 3);
+    await reachSlide(user, 4);
     expect(screen.queryByRole("button", { name: "Next slide" })).toBeNull();
     expect(screen.getByRole("button", { name: "Continue to TUF mods" })).toBeTruthy();
     await user.keyboard("{ArrowLeft}");
-    await screen.findByRole("heading", { name: "TUF difficulty system" });
-    await user.keyboard("{ArrowRight}");
     await screen.findByRole("heading", { name: "Clear submissions and scoring" });
+    await user.keyboard("{ArrowRight}");
+    await screen.findByRole("heading", { name: "Community and resources" });
   });
 
   it("continues to TUF mods through the last slide's right chevron", async () => {
@@ -69,7 +88,7 @@ describe("TUF introduction", () => {
     const user = userEvent.setup();
     expect(screen.queryByRole("button", { name: "Continue to TUF mods" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Skip" })).toBeNull();
-    await reachSlide(user, 3);
+    await reachSlide(user, 4);
     await user.click(screen.getByRole("button", { name: "Continue to TUF mods" }));
     expect(next).toHaveBeenCalledTimes(1);
   });
@@ -103,7 +122,7 @@ describe("TUF introduction", () => {
     await user.click(slider);
     for (const key of ["ArrowLeft", "ArrowRight"]) {
       expect(fireEvent.keyDown(slider, { key, cancelable: true })).toBe(true);
-      expect(screen.getByRole("group", { name: "3 of 4: Difficulty" })).toBeTruthy();
+      expect(screen.getByRole("group", { name: "3 of 5: Difficulty" })).toBeTruthy();
     }
     // JSDOM does not implement the browser's native range-keyboard value change.
     fireEvent.change(slider, { target: { value: "11" } });
@@ -180,6 +199,8 @@ describe("TUF introduction", () => {
     setDisabled(false);
     await user.click(screen.getByRole("button", { name: "Next slide" }));
     await screen.findByRole("heading", { name: "Clear submissions and scoring" });
+    await user.click(screen.getByRole("button", { name: "Next slide" }));
+    await screen.findByRole("heading", { name: "Community and resources" });
     setDisabled(true);
     const finish = screen.getByRole("button", { name: "Continue to TUF mods" });
     expect(finish.hasAttribute("disabled")).toBe(true);

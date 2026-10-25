@@ -25,12 +25,35 @@ export function compareVersions(left: string, right: string): number | null {
   return Math.sign(a.stage - b.stage || a.revision - b.revision);
 }
 const identity = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+function projectIdentity(value?: string | null): string | null {
+  try {
+    const url = new URL(value ?? "");
+    if (!["https:", "http:"].includes(url.protocol)) return null;
+    const path = url.pathname.replace(/\/+$/, "");
+    if (!path) return null;
+    if (url.hostname.toLowerCase() === "github.com") {
+      const parts = path.split("/").filter(Boolean);
+      return parts.length >= 2
+        ? `github.com/${parts[0]}/${parts[1].replace(/\.git$/i, "")}`.toLowerCase()
+        : null;
+    }
+    return `${url.hostname.toLowerCase()}${path}`;
+  } catch {
+    return null;
+  }
+}
 export function findCatalogMod(mod: InstalledMod, catalog: CatalogMod[]): CatalogMod | undefined {
   const alias = Object.values(recommendations).find(
     (item) => identity(item.installedId) === identity(mod.id),
   );
   if (alias) return catalog.find((item) => item.id === alias.slug);
+  const home = projectIdentity(mod.homePage);
+  if (home) {
+    const matches = catalog.filter((item) => projectIdentity(item.projectUrl) === home);
+    if (matches.length === 1) return matches[0];
+  }
   for (const name of [mod.id, mod.name]) {
+    if (!identity(name)) continue;
     const matches = catalog.filter((item) =>
       [item.id, item.name].some((value) => identity(value) === identity(name)),
     );
@@ -38,6 +61,22 @@ export function findCatalogMod(mod: InstalledMod, catalog: CatalogMod[]): Catalo
     if (matches.length > 1) return undefined;
   }
   return undefined;
+}
+export function installedCatalogMods(mods: InstalledMod[], catalog: CatalogMod[]) {
+  const matches = new Map<string, InstalledMod>();
+  for (const mod of mods) {
+    if (!mod.installed) continue;
+    const entry = findCatalogMod(mod, catalog);
+    if (entry) matches.set(entry.id, mod);
+  }
+  return matches;
+}
+export function sameModVersion(left: string, right: string) {
+  return (
+    !!left.trim() &&
+    !!right.trim() &&
+    (compareVersions(left, right) === 0 || left.trim().toLowerCase() === right.trim().toLowerCase())
+  );
 }
 export interface ModUpdate {
   state: "available" | "current" | "unknown" | "unlisted";

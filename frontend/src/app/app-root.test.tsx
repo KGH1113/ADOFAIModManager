@@ -19,6 +19,7 @@ beforeEach(async () => {
     page: "install",
     gamePath: null,
     completed: false,
+    welcomeSeen: false,
     welcomeOpen: true,
     settingsOpen: false,
     onboarding: { step: "experience", readyBack: "experience" },
@@ -44,7 +45,7 @@ function mount(api = createMockApi()) {
 }
 describe("desktop user journeys", () => {
   it.each([false, true])(
-    "starts on welcome after restoring preferences with completed=%s",
+    "only starts on welcome for unfinished legacy preferences with completed=%s",
     async (completed) => {
       const gamePath = "/Preview/ADanceOfFireAndIce.app";
       localStorage.setItem(
@@ -53,20 +54,46 @@ describe("desktop user journeys", () => {
       );
       await usePreferences.persist.rehydrate();
       mount();
-      expect(await screen.findByRole("heading", { name: "ADOFAI Mod Manager" })).toBeTruthy();
+      if (!completed)
+        expect(await screen.findByRole("heading", { name: "ADOFAI Mod Manager" })).toBeTruthy();
       expect(usePreferences.getState()).toMatchObject({
         completed,
         gamePath,
         language: "en",
-        welcomeOpen: true,
+        welcomeOpen: !completed,
+        welcomeSeen: true,
         onboarding: { step: "welcome" },
       });
-      expect(screen.queryByTestId("app-settings")).toBeNull();
-      const user = userEvent.setup();
-      await user.click(screen.getByRole("button", { name: "Continue" }));
-      await screen.findByTestId("experience-returning");
+      if (!completed) {
+        expect(screen.queryByTestId("app-settings")).toBeNull();
+        const user = userEvent.setup();
+        await user.click(screen.getByRole("button", { name: "Continue" }));
+        await screen.findByTestId("experience-returning");
+      } else {
+        expect(screen.queryByRole("heading", { name: "ADOFAI Mod Manager" })).toBeNull();
+      }
     },
   );
+
+  it("shows welcome once even when closed before completion, and allows manual replay", async () => {
+    usePreferences.persist.clearStorage();
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState()).toMatchObject({
+      welcomeOpen: true,
+      welcomeSeen: true,
+      completed: false,
+    });
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState()).toMatchObject({
+      welcomeOpen: false,
+      welcomeSeen: true,
+      completed: false,
+    });
+    usePreferences.getState().replay();
+    expect(usePreferences.getState().welcomeOpen).toBe(true);
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().welcomeOpen).toBe(false);
+  });
 
   it.each([
     ["tuf", ["tuf", "tufLite"]],

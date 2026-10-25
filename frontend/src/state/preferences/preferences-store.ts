@@ -12,6 +12,7 @@ interface Preferences {
   gamePath: string | null;
   language: Language;
   completed: boolean;
+  welcomeSeen: boolean;
   hydrated: boolean;
   welcomeOpen: boolean;
   onboarding: OnboardingState;
@@ -32,6 +33,7 @@ export const usePreferences = create<Preferences>()(
       gamePath: null,
       language: "system",
       completed: false,
+      welcomeSeen: false,
       hydrated: false,
       welcomeOpen: true,
       onboarding: { step: "welcome", readyBack: "experience" },
@@ -53,24 +55,31 @@ export const usePreferences = create<Preferences>()(
         }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       initialize: () =>
-        set({
+        set((state) => ({
           hydrated: true,
-          welcomeOpen: true,
+          welcomeOpen: !state.welcomeSeen && !state.completed,
+          welcomeSeen: true,
           settingsOpen: false,
           onboarding: { step: "welcome", readyBack: "experience" },
-        }),
+        })),
     }),
     {
       name: "adofai-mod-manager.preferences.v1",
       storage: createJSONStorage(() => localStorage),
       version: 1,
-      partialize: ({ completed, gamePath, language }) => ({ completed, gamePath, language }),
+      partialize: ({ completed, welcomeSeen, gamePath, language }) => ({
+        completed,
+        welcomeSeen,
+        gamePath,
+        language,
+      }),
       onRehydrateStorage: () => (state) => state?.initialize(),
       merge: (persisted, current) => {
         const value = persisted as Partial<Preferences> | undefined;
         return {
           ...current,
           completed: value?.completed === true,
+          welcomeSeen: value?.welcomeSeen === true || value?.completed === true,
           gamePath: typeof value?.gamePath === "string" ? value.gamePath : null,
           language: ["system", "ko", "en", "zh"].includes(value?.language ?? "")
             ? (value?.language as Language)

@@ -10,7 +10,7 @@
     },
     "frontend": {
       "name": "@adofai-mod-manager/frontend",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@fontsource-variable/figtree": "^5.2.10",
         "@gsap/react": "^2.1.2",

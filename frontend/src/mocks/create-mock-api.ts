@@ -196,7 +196,7 @@ export function createMockApi(): AppApi {
       }),
     },
     desktop: {
-      runtime: async () => ({ platform: "macos", version: "0.2.0" }),
+      runtime: async () => ({ platform: "macos", version: "0.2.1" }),
       chooseGame: async () => game.gamePath,
       chooseArchive: async () => "/Preview/mod.zip",
       openUrl: async () => {},

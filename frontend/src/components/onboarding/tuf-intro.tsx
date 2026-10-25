@@ -2,7 +2,9 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type KeyboardEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApi } from "@/api/app-api-provider";
+import communityIcon from "@/assets/onboarding/adofai-community.png";
 import homeImage from "@/assets/onboarding/tuf-home.webp";
+import tufIcon from "@/assets/onboarding/tuf-icon.png";
 import leaderboardImage from "@/assets/onboarding/tuf-leaderboard.webp";
 import levelsImage from "@/assets/onboarding/tuf-levels.webp";
 import { TufDifficulty } from "@/components/onboarding/tuf-difficulty";
@@ -11,7 +13,7 @@ import { Icon } from "@/shared/ui/icon";
 import { runOperation } from "@/state/operations/operations-store";
 import "./tuf-intro.css";
 
-const slides = ["home", "levels", "difficulty", "scores"] as const;
+const slides = ["home", "levels", "difficulty", "scores", "community"] as const;
 const copy = "onboarding.tufIntro";
 
 export function TufIntro({ next, disabled = false }: { next(): void; disabled?: boolean }) {
@@ -60,7 +62,7 @@ export function TufIntro({ next, disabled = false }: { next(): void; disabled?: 
         </div>
         <span className="tuf-slide-count" aria-hidden="true">
           <strong>{String(index + 1).padStart(2, "0")}</strong>
-          <span>/ 04</span>
+          <span>/ {String(slides.length).padStart(2, "0")}</span>
         </span>
       </header>
 
@@ -110,7 +112,13 @@ export function TufIntro({ next, disabled = false }: { next(): void; disabled?: 
                   <div className="tuf-home-copy">
                     <span className="tuf-slide-eyebrow">01 / {t(`${copy}.labels.home`)}</span>
                     <h2>{t(`${copy}.home.title`)}</h2>
-                    <p>{t(`${copy}.home.description`)}</p>
+                    <div className="tuf-home-description">
+                      {t(`${copy}.home.description`)
+                        .split("\n\n")
+                        .map((paragraph) => (
+                          <p key={paragraph}>{paragraph}</p>
+                        ))}
+                    </div>
                     <Button
                       className="tuf-website-link"
                       disabled={disabled}
@@ -137,6 +145,54 @@ export function TufIntro({ next, disabled = false }: { next(): void; disabled?: 
                 </>
               )}
               {slide === "difficulty" && <TufDifficulty disabled={disabled} />}
+              {slide === "community" && (
+                <>
+                  <div className="tuf-community-heading">
+                    <span className="tuf-slide-eyebrow">05 / {t(`${copy}.labels.community`)}</span>
+                    <h2>{t(`${copy}.community.title`)}</h2>
+                    <p>{t(`${copy}.community.description`)}</p>
+                  </div>
+                  <div className="tuf-community-links">
+                    {(
+                      [
+                        {
+                          key: "discord",
+                          name: "ADOFAI Community Server",
+                          icon: communityIcon,
+                          url: "https://discord.gg/TKdpbUUfUa",
+                        },
+                        {
+                          key: "resources",
+                          name: "TUF Resource Page",
+                          icon: tufIcon,
+                          url: "https://tuforums.com/resources",
+                        },
+                      ] as const
+                    ).map((resource) => (
+                      <article key={resource.key} className="tuf-community-resource">
+                        <span
+                          className={`tuf-resource-icon tuf-resource-icon-${resource.key}`}
+                          aria-hidden="true"
+                        >
+                          <img
+                            src={resource.icon}
+                            alt=""
+                            width={80}
+                            height={80}
+                            draggable={false}
+                          />
+                        </span>
+                        <h3>{resource.name}</h3>
+                        <p>{t(`${copy}.community.${resource.key}.description`)}</p>
+                        <Button disabled={disabled} onClick={() => open(resource.url)}>
+                          {t(`${copy}.community.${resource.key}.action`)}
+                          <Icon name="external" size={18} />
+                        </Button>
+                      </article>
+                    ))}
+                  </div>
+                </>
+              )}
               {slide === "scores" && (
                 <>
                   <div className="tuf-score-heading">

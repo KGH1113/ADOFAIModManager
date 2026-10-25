@@ -6,6 +6,8 @@ import { useManager } from "@/app/manager-provider";
 import { CatalogTags, catalogDate, ModArtwork } from "@/components/catalog/catalog-card";
 import { ModDescription } from "@/components/catalog/mod-description";
 import type { CatalogMod, CatalogModDetail } from "@/models/catalog/catalog-model";
+import type { InstalledMod } from "@/models/installation/installation-model";
+import { sameModVersion } from "@/models/mods/mod-updates";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { ScrollArea } from "@/shared/ui/scroll-area";
@@ -16,10 +18,12 @@ export function CatalogDetail({
   mod: summary,
   detail,
   back,
+  installed,
 }: {
   mod: CatalogMod;
   detail: UseQueryResult<CatalogModDetail, Error>;
   back(): void;
+  installed?: InstalledMod;
 }) {
   const { t, i18n } = useTranslation();
   const api = useApi();
@@ -35,6 +39,7 @@ export function CatalogDetail({
     versions.find((version) => version.id === versionId) ??
     versions.find((version) => version.version === detail.data?.latestVersion) ??
     versions[0];
+  const current = !!installed && !!selected && sameModVersion(installed.version, selected.version);
   const openUrl = (url: string) => {
     void runOperation("catalog.website", () => api.desktop.openUrl(url));
   };
@@ -62,6 +67,11 @@ export function CatalogDetail({
               {mod.pinned && <span className="catalog-pinned">{t("catalog.pinned")}</span>}
             </div>
             <p>{mod.author || "—"}</p>
+            {installed && (
+              <p className="catalog-installed">
+                {t("catalog.installedVersion", { version: installed.version })}
+              </p>
+            )}
           </div>
         </header>
         <div className="catalog-detail-stats">
@@ -168,8 +178,9 @@ export function CatalogDetail({
                   </p>
                 )}
                 <Button
-                  variant="primary"
-                  disabled={locked || !!blockedReason || !selected.url}
+                  variant={current ? "secondary" : "primary"}
+                  className={current ? "catalog-install-complete" : undefined}
+                  disabled={locked || !!blockedReason || !selected.url || current}
                   pending={imports.download?.id === mod.id}
                   onClick={() =>
                     void imports.fromCatalog({
@@ -179,8 +190,8 @@ export function CatalogDetail({
                     })
                   }
                 >
-                  <Icon name="download" size={18} />
-                  {t("catalog.download")}
+                  <Icon name={current ? "check" : "download"} size={18} />
+                  {t(current ? "catalog.installed" : "catalog.download")}
                 </Button>
                 {blockedReason && <p className="catalog-version-hint">{blockedReason}</p>}
                 {selected.projectUrl && (
