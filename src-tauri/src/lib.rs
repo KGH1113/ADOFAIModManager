@@ -137,6 +137,11 @@ fn queue_imports(app: &tauri::AppHandle, paths: impl IntoIterator<Item = String>
 }
 
 pub fn run() {
+    // Avoid WebKitGTK DMA-BUF/EGL renderer failures on some Linux GPU setups.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             queue_imports(app, args.into_iter().skip(1));

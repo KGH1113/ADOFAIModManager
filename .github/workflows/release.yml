@@ -76,6 +76,32 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: bun run tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config src-tauri/tauri.release.conf.json
+      - name: Remove bundled libwayland-client from AppImage
+        # The bundled copy breaks EGL on newer Wayland systems (EGL_BAD_PARAMETER).
+        # Wayland sessions always provide the system library.
+        if: runner.os == 'Linux'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+          ARCH: x86_64
+        run: |
+          set -euo pipefail
+          dir="src-tauri/target/${{ matrix.target }}/release/bundle/appimage"
+          app="$(cd "$dir" && ls -- *.AppImage)"
+          tool="$RUNNER_TEMP/appimagetool"
+          wget -q -O "$tool" https://github.com/AppImage/appimagetool/releases/download/1.9.0/appimagetool-x86_64.AppImage
+          chmod +x "$tool"
+          work="$RUNNER_TEMP/appimage-repack"
+          rm -rf "$work" && mkdir -p "$work"
+          (cd "$work" && "$GITHUB_WORKSPACE/$dir/$app" --appimage-extract >/dev/null)
+          removed="$(find "$work/squashfs-root" -name 'libwayland-client.so*' -print -delete)"
+          if [ -z "$removed" ]; then echo "::error::libwayland-client not found in AppImage"; exit 1; fi
+          echo "Removed: $removed"
+          rm -f "$dir/$app" "$dir/$app.sig"
+          "$tool" "$work/squashfs-root" "$dir/$app"
+          bun run tauri signer sign "$dir/$app"
+          test -s "$dir/$app.sig"
       - uses: actions/upload-artifact@v4
         with:
           name: update-${{ matrix.target }}

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@fontsource-variable/figtree";
+@import "@fontsource-variable/noto-emoji";
 
 /* Neutral desktop surfaces with role-based lime tones.
    Use the reference primary at full strength for actions and active tabs. */
@@ -3011,4 +3012,14 @@ input[type="checkbox"]:disabled {
     --muted-foreground: oklch(0.85 0 0);
     --ring: oklch(0.85 0 0);
   }
+}
+
+/* Linux WebKitGTK can crash drawing COLRv1 color emoji fonts.
+   Use the bundled monochrome emoji font before system fallbacks. */
+:root.platform-linux,
+:root.platform-linux input,
+:root.platform-linux textarea,
+:root.platform-linux select,
+:root.platform-linux button {
+  font-family: "Figtree Variable", "Noto Emoji Variable", "Noto Sans", sans-serif;
 }

@@ -12,6 +12,10 @@ import i18n from "@/i18n/i18n";
 import { createTauriClient } from "@/shared/clients/tauri-client";
 import "./index.css";
 
+if (/linux/i.test(navigator.userAgent) && !/android/i.test(navigator.userAgent)) {
+  document.documentElement.classList.add("platform-linux");
+}
+
 async function main() {
   const element = document.getElementById("root");
   if (!element) throw new Error("Application root is missing");

@@ -13,6 +13,7 @@
       "version": "0.2.1",
       "dependencies": {
         "@fontsource-variable/figtree": "^5.2.10",
+        "@fontsource-variable/noto-emoji": "^5.3.2",
         "@gsap/react": "^2.1.2",
         "@hugeicons/core-free-icons": "4.1.4",
         "@hugeicons/react": "^1.1.6",
@@ -195,6 +196,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
 
     "@fontsource-variable/figtree": ["@fontsource-variable/figtree@5.3.0", "", {}, "sha512-VRVodD7OiG7apQwE8/2fMjaqpY/a0qRJqL5HtYj8CKIVps+9amaFcdfKmDIf7iqYQx6iPLlArVXAfKeIZmVcNQ=="],
+
+    "@fontsource-variable/noto-emoji": ["@fontsource-variable/noto-emoji@5.3.2", "", {}, "sha512-LgtrM0SErtdfSvrI3CqtHeCtToGCVN66hX+HVNv9QHF5KX0Ko1swzUsSMv1y6Jwjxp3Wzkp8e5PPcl7GLZadOw=="],
 
     "@gsap/react": ["@gsap/react@2.1.2", "", { "peerDependencies": { "gsap": "^3.12.5", "react": ">=17" } }, "sha512-JqliybO1837UcgH2hVOM4VO+38APk3ECNrsuSM4MuXp+rbf+/2IG2K1YJiqfTcXQHH7XlA0m3ykniFYstfq0Iw=="],
 
