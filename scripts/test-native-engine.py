@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -9,7 +10,12 @@ import zipfile
 
 engine = Path(sys.argv[1]).resolve()
 with tempfile.TemporaryDirectory(prefix="amm-native-check-") as temporary:
-    root = Path(temporary).resolve()
+    root = Path(temporary).resolve() / "한글 사용자"
+    root.mkdir()
+    payload = root / "설치 리소스" / "UMMPayload"
+    payload.mkdir(parents=True)
+    repository = Path(__file__).resolve().parents[1]
+    shutil.copyfile(repository / "Resources/UMMPayload/UnityModManager.dll", payload / "UnityModManager.dll")
     if sys.platform == "darwin":
         game = root / "ADanceOfFireAndIce.app"
         managed = game / "Contents/Resources/Data/Managed"
@@ -30,13 +36,18 @@ with tempfile.TemporaryDirectory(prefix="amm-native-check-") as temporary:
 
     def request(action, **extra):
         env = {**os.environ, "ADOFAI_MOD_MANAGER_DATA": str(root / "app-data")}
-        result = subprocess.run([str(engine)], input=json.dumps({"protocolVersion": 1, "gamePath": str(game), "action": action, **extra}), text=True, capture_output=True, check=True, env=env)
+        result = subprocess.run([str(engine)], input=json.dumps({"protocolVersion": 1, "gamePath": str(game), "payloadDir": str(payload), "action": action, **extra}, ensure_ascii=False), encoding="utf-8", capture_output=True, env=env)
+        assert result.returncode == 0, (action, result.stdout, result.stderr)
         response = json.loads(result.stdout)
         assert response.get("ok"), response
         return response
 
     status = request("status")
     assert status["detected"]
+    assert status.get("bundledVersion"), "Literal UTF-8 paths must resolve the bundled DLL in a Korean directory."
+    if "--status-only" in sys.argv[2:]:
+        print("Native AOT literal UTF-8 Korean game and payload path checks passed.")
+        sys.exit(0)
     original = "<DisableEffectsSettings><Preserved>custom</Preserved></DisableEffectsSettings>"
     settings = mod / "DisableEffectsSettings.xml"
     settings.write_text(original)
@@ -72,4 +83,4 @@ with tempfile.TemporaryDirectory(prefix="amm-native-check-") as temporary:
     assert (managed / "UnityModManager/Params.xml").is_file()
     request("removemod", path=str(mods / "Sample"))
     assert not (mods / "Sample").exists()
-print("Native AOT status, presets, onboarding, ZIP import, toggle, removal, backup and explicit-path checks passed.")
+print("Native AOT Korean UTF-8 paths, bundled payload lookup, status, presets, onboarding, ZIP import, toggle, removal, backup and explicit-path checks passed.")
