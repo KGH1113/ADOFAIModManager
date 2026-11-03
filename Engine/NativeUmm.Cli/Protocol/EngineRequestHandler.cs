@@ -214,6 +214,7 @@ internal sealed class EngineRequestHandler(
             if (status is not null)
             {
                 w.WriteBoolean("hookInstalled", status.HookInstalled);
+                w.WriteString("injectionMethod", status.Injection.ToProtocol());
                 w.WriteBoolean("managerInstalled", status.ManagerInstalled);
                 if (status.ManagerVersion is not null)
                     w.WriteString("managerVersion", status.ManagerVersion);

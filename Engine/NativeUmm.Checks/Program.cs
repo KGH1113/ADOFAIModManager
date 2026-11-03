@@ -167,5 +167,6 @@ try {
     File.WriteAllText(shortcutPath, "<Other />");
     Reject(() => shortcuts.Save(shortcutDirectory, "F10", 1), "Preserve malformed UMM settings");
     ModInstallationChecks.Run(root, Check);
+    DoorstopInstallationChecks.Run(root, Check);
     Console.WriteLine($"{checks} Linux/Proton discovery, architecture, preset, onboarding, preservation and path checks passed.");
 } finally { Directory.Delete(root, recursive: true); }

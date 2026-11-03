@@ -18,6 +18,15 @@ export function GameSetupCard({
   compact?: boolean;
 }) {
   const { t } = useTranslation();
+  const summary = !installation?.installed
+    ? t("install.notInstalled")
+    : [
+        t("onboarding.mods.installed"),
+        installation.version,
+        installation.injection !== "none" ? t(`install.method.${installation.injection}`) : null,
+      ]
+        .filter((part) => !!part)
+        .join(" · ");
   return (
     <section
       className={`setup-card ${compact ? "setup-card-compact" : ""}`}
@@ -78,14 +87,16 @@ export function GameSetupCard({
           </span>
           <div>
             <strong>Unity Mod Manager</strong>
-            <p>
-              {installation?.installed
-                ? `${t("onboarding.mods.installed")} · ${installation.version ?? ""}`
-                : t("install.notInstalled")}
-            </p>
+            <p>{summary}</p>
           </div>
         </div>
       </div>
+      {installation?.injection === "both" && (
+        <p className="inline-warning" role="alert">
+          <Icon name="alert" size={16} />
+          {t("install.bothMethods")}
+        </p>
+      )}
       {installation?.gameRunning && (
         <p className="inline-warning">
           <Icon name="alert" size={16} />

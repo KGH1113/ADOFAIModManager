@@ -40,6 +40,7 @@ export const engineResponseSchema = z.object({
       processArch: z.string().optional(),
       gameArch: z.string().optional(),
       hookInstalled: z.boolean().optional(),
+      injectionMethod: z.enum(["none", "assembly", "doorstop", "both"]).optional(),
       managerInstalled: z.boolean().optional(),
       managerVersion: z.string().nullish(),
       hasBackup: z.boolean().optional(),

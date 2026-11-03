@@ -29,6 +29,7 @@ export function createMockApi(): AppApi {
     gameRoot: "/Preview",
     modsPath: "/Preview/Mods",
     installed: false,
+    injection: "none",
     version: null,
     bundledVersion: "0.32.5.0",
     hasBackup: false,
@@ -83,9 +84,11 @@ export function createMockApi(): AppApi {
     installation: {
       load: async () => ({ ...game }),
       execute: async (_, action) => {
+        const installing = action === "install" || action === "repair";
         game = {
           ...game,
-          installed: action === "install" || action === "repair",
+          installed: installing,
+          injection: installing ? "assembly" : "none",
           version: "0.32.5.0",
           hasBackup: true,
         };
