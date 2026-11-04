@@ -2,8 +2,6 @@
 
 이 폴더에 다음 이름의 MP4 파일을 넣으면 해당 온보딩 화면에 자동으로 표시됩니다.
 
-- jrp.mp4 — JipperResourcePack
-- chatter.mp4 — Keyboard Chatter Blocker
 - tufLite.mp4 — TUFHelperLite
 - tuf.mp4 — TUFHelper
 - modSettings.mp4 — UMM 설치 후 Ctrl+F10 및 모드 개별 설정 가이드
@@ -19,8 +17,8 @@ H.264 MP4, 16:9 비율을 권장합니다. 파일 추가 후 앱을 다시 빌�
 현재 영상은 `/Users/kgh/Movies/adofai-mod-manager-showcase`의 원본 MOV에서
 H.264 영상 스트림을 그대로 MP4로 옮겼습니다. 1920×1080 해상도와 60fps를
 유지하며 자동재생에 필요 없는 오디오와 데이터 트랙은 제외했습니다.
-원본 파일 대응은 `jrp.mov → jrp.mp4`, `kcb.mov → chatter.mp4`,
-`tufhelperlite.mov → tufLite.mp4`, `tufhelper.mov → tuf.mp4`입니다.
+원본 파일 대응은 `tufhelperlite.mov → tufLite.mp4`, `tufhelper.mov → tuf.mp4`입니다.
+Element 소개 화면은 영상 대신 `components/onboarding/element/`의 그림과 애니메이션을 씁니다.
 
 `modSettings.mp4`는 `2026-10-04 20-58-26.mp4`에서 오디오를 제외하고 H.264로
 변환했습니다. `PreviewVideo`의 `startTime`으로 앞 144F(2.400초)를 건너뛰며,

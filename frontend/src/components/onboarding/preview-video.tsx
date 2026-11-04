@@ -15,7 +15,7 @@ export function PreviewVideo({
   onMediaTime,
   startTime = 0,
 }: {
-  kind: "jrp" | "chatter" | "tufLite" | "tuf" | "modSettings";
+  kind: "tufLite" | "tuf" | "modSettings";
   name: string;
   fallback?: ReactNode;
   onMediaTime?: (time: number) => void;

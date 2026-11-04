@@ -43,8 +43,8 @@ describe("trimmed onboarding video", () => {
   });
 
   it("keeps ordinary recommendation videos on native autoplay and looping", () => {
-    render(<PreviewVideo kind="jrp" name="JRP preview" />);
-    const player = screen.getByLabelText("JRP preview") as HTMLVideoElement;
+    render(<PreviewVideo kind="tuf" name="TUFHelper preview" />);
+    const player = screen.getByLabelText("TUFHelper preview") as HTMLVideoElement;
     expect(player.autoplay).toBe(true);
     expect(player.loop).toBe(true);
     expect(player.currentTime).toBe(0);
