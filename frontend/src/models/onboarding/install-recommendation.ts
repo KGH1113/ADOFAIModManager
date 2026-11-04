@@ -77,8 +77,6 @@ export async function installRecommendation(
     if (session.installed.has(identity) && !session.configured.has(identity)) {
       progress(mod.name);
       const kind = {
-        jrp: "jrp-defaults",
-        chatter: "chatter-defaults",
         tuf: "tuf-overlay",
         countdown: "countdown-defaults",
       } as const;

@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 import { useManager } from "@/app/manager-provider";
 import { PreviewVideo } from "@/components/onboarding/preview-video";
 import type { useRecommendations } from "@/hooks/mods/use-recommendations";
+import { hasInstalledMod } from "@/models/installation/installation-model";
 import {
-  moreMods,
+  moreModsFor,
   type RecommendationKey,
   recommendations,
 } from "@/models/onboarding/onboarding-model";
@@ -13,7 +14,8 @@ import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 
-type Flow = ReturnType<typeof useRecommendations>;
+export type Flow = ReturnType<typeof useRecommendations>;
+
 function InstallAllButton({
   modKeys,
   flow,
@@ -42,7 +44,7 @@ function InstallAllButton({
     </Button>
   );
 }
-function InstallButton({ modKey, flow }: { modKey: RecommendationKey; flow: Flow }) {
+export function InstallButton({ modKey, flow }: { modKey: RecommendationKey; flow: Flow }) {
   const { t } = useTranslation();
   const { game, locked } = useManager();
   const mod = recommendations[modKey];
@@ -65,7 +67,7 @@ function InstallButton({ modKey, flow }: { modKey: RecommendationKey; flow: Flow
     </Button>
   );
 }
-function Progress({ flow }: { flow: Flow }) {
+export function Progress({ flow }: { flow: Flow }) {
   const { t } = useTranslation();
   const { game } = useManager();
   return (
@@ -87,59 +89,6 @@ function Progress({ flow }: { flow: Flow }) {
     </>
   );
 }
-export function RecommendationStep({
-  kind,
-  flow,
-  next,
-}: {
-  kind: "jrp" | "chatter";
-  flow: Flow;
-  next(): void;
-}) {
-  const { t } = useTranslation();
-  const { game, locked } = useManager();
-  const mod = recommendations[kind];
-  const installed = game.data?.mods.some(
-    (m) => m.installed && m.id.toLowerCase() === mod.installedId.toLowerCase(),
-  );
-  return (
-    <div className="recommendation-step">
-      <div className="recommendation-sidebar">
-        <div className="recommendation-heading">
-          <div>
-            <h1 id="onboarding-title" tabIndex={-1}>
-              {mod.name}
-            </h1>
-            <p>{t(`onboarding.recommend.${kind}.description`)}</p>
-          </div>
-        </div>
-        {kind === "jrp" && (
-          <p className="recommendation-note">{t("onboarding.recommend.jrp.note")}</p>
-        )}
-        <Progress flow={flow} />
-        <footer className="recommendation-actions">
-          <div>
-            <InstallButton modKey={kind} flow={flow} />
-            <Button
-              variant={installed ? "primary" : "ghost"}
-              disabled={locked}
-              onClick={() => {
-                next();
-              }}
-            >
-              {t(installed ? "onboarding.continue" : "onboarding.skip")}
-              <Icon name="right" />
-            </Button>
-          </div>
-        </footer>
-      </div>
-      <div className="recommendation-media">
-        <PreviewVideo kind={kind} name={mod.name} />
-      </div>
-    </div>
-  );
-}
-
 export function TufStep({ flow, next }: { flow: Flow; next(): void }) {
   const { t } = useTranslation();
   const { locked } = useManager();
@@ -217,7 +166,8 @@ export function TufStep({ flow, next }: { flow: Flow; next(): void }) {
 }
 export function MoreModsStep({ flow, next }: { flow: Flow; next(): void }) {
   const { t } = useTranslation();
-  const { locked } = useManager();
+  const { game, locked } = useManager();
+  const moreMods = moreModsFor(hasInstalledMod(game.data, recommendations.element.installedId));
   const listRef = useRef<HTMLUListElement>(null);
   const [hasMoreBelow, setHasMoreBelow] = useState(false);
   useEffect(() => {

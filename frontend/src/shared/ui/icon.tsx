@@ -1,6 +1,7 @@
 import {
   Add01Icon,
   Alert02Icon,
+  Analytics01Icon,
   ArrowDown01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
@@ -18,6 +19,7 @@ import {
   InformationCircleIcon,
   KeyboardIcon,
   Loading03Icon,
+  LockKeyIcon,
   MoreHorizontalIcon,
   Package01Icon,
   PauseIcon,
@@ -26,7 +28,9 @@ import {
   RefreshIcon,
   Search01Icon,
   Settings01Icon,
+  Shield01Icon,
   SlidersHorizontalIcon,
+  SparklesIcon,
   Tick01Icon,
   UserIcon,
 } from "@hugeicons/core-free-icons";
@@ -63,6 +67,10 @@ const icons = {
   pause: PauseIcon,
   keyboard: KeyboardIcon,
   sliders: SlidersHorizontalIcon,
+  chart: Analytics01Icon,
+  sparkles: SparklesIcon,
+  shield: Shield01Icon,
+  lock: LockKeyIcon,
 };
 export type IconName = keyof typeof icons;
 export function Icon({

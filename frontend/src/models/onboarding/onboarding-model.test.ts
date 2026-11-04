@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type OnboardingState, recommendations, transition } from "./onboarding-model";
+import { moreModsFor, type OnboardingState, recommendations, transition } from "./onboarding-model";
 
 describe("onboarding navigation", () => {
   it("supports the experienced and beginner paths with reversible skips", () => {
@@ -12,14 +12,12 @@ describe("onboarding navigation", () => {
     state = transition(state, "next");
     expect(state.step).toBe("modSettings");
     state = transition(state, "next");
-    expect(state.step).toBe("jrp");
+    expect(state.step).toBe("element");
     state = transition(state, "next");
-    expect(state.step).toBe("keyBindings");
-    state = transition(state, "next");
-    expect(state.step).toBe("chatter");
+    expect(state.step).toBe("elementStart");
     state = transition(state, "next");
     expect(state.step).toBe("tufIntro");
-    expect(transition(state, "back").step).toBe("chatter");
+    expect(transition(state, "back").step).toBe("elementStart");
     state = transition(state, "next");
     expect(state.step).toBe("tuf");
     expect(transition(state, "back").step).toBe("tufIntro");
@@ -47,15 +45,23 @@ describe("onboarding navigation", () => {
     );
   });
   it("identifies recommendations by TUF slug instead of a display name", () => {
-    expect(recommendations.chatter.slug).toBe("keyboardchatterblocker");
-    expect(recommendations.jrp.installedId).toBe("JipperResourcePack");
+    expect(recommendations.element.slug).toBe("element");
+    expect(recommendations.element.installedId).toBe("Element");
+    expect(recommendations.calibration.slug).toBe("bettercalibration");
   });
-  it("skips key binding setup when JRP was skipped and restores it when installed", () => {
-    const jrp: OnboardingState = { step: "jrp", readyBack: "modSettings" };
-    expect(transition(jrp, "next", false, false).step).toBe("chatter");
-    expect(transition(jrp, "next", false, true).step).toBe("keyBindings");
-    expect(transition({ step: "chatter", readyBack: "jrp" }, "back", false, false).step).toBe(
-      "jrp",
+  it("shows the first-launch guide only after Element is installed", () => {
+    const element: OnboardingState = { step: "element", readyBack: "modSettings" };
+    expect(transition(element, "next", false, false).step).toBe("tufIntro");
+    expect(transition(element, "next", false, true).step).toBe("elementStart");
+    expect(transition({ step: "tufIntro", readyBack: "element" }, "back", false, false).step).toBe(
+      "element",
     );
+    expect(transition({ step: "tufIntro", readyBack: "element" }, "back", false, true).step).toBe(
+      "elementStart",
+    );
+  });
+  it("drops the duplicate effect remover from More mods once Element is installed", () => {
+    expect(moreModsFor(false)).toContain("effects");
+    expect(moreModsFor(true)).toEqual(["countdown", "calibration", "youtube"]);
   });
 });

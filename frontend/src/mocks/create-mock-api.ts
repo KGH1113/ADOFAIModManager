@@ -11,6 +11,7 @@ import { type RecommendedMod, recommendations } from "@/models/onboarding/onboar
 type PreviewMod = RecommendedMod & { version: string };
 const previewVersions: Record<string, string> = {
   jalib: "1.0.0.45 beta45",
+  element: "1.2.0",
   jrp: "1.5.2.0",
   keyboardchatterblocker: "0.1.3",
   tufhelperlite: "0.1.9",
@@ -21,6 +22,15 @@ const previewVersions: Record<string, string> = {
   enhancedeffectremover: "1.7.0",
   adofaiipc: "0.4.1",
 };
+// TUF mods the onboarding doesn't recommend, so the preview catalog still has variety.
+const catalogOnly: RecommendedMod[] = [
+  { installedId: "JipperResourcePack", name: "JipperResourcePack", slug: "jrp" },
+  {
+    installedId: "KeyboardChatterBlocker",
+    name: "Keyboard Chatter Blocker",
+    slug: "keyboardchatterblocker",
+  },
+];
 // Explicit development-only preview. No native command or filesystem operation is performed.
 export function createMockApi(): AppApi {
   let game: Installation = {
@@ -39,7 +49,7 @@ export function createMockApi(): AppApi {
     mods: [],
     log: [],
   };
-  const items: PreviewMod[] = Object.values(recommendations).map((item) => ({
+  const items: PreviewMod[] = [...Object.values(recommendations), ...catalogOnly].map((item) => ({
     ...item,
     version: previewVersions[item.slug],
   }));
@@ -65,7 +75,7 @@ export function createMockApi(): AppApi {
     }),
   );
   const historicalItems: PreviewMod[] = ["0.1.2", "0.1.1"].map((version) => ({
-    ...recommendations.chatter,
+    ...catalogOnly[1],
     version,
   }));
   let current: PreviewMod = items[1];
@@ -196,7 +206,11 @@ export function createMockApi(): AppApi {
       }),
     },
     desktop: {
-      runtime: async () => ({ platform: "macos", version: "0.2.1" }),
+      // `?platform=windows` previews platform-specific onboarding copy.
+      runtime: async () => ({
+        platform: new URLSearchParams(location.search).get("platform") ?? "macos",
+        version: "0.2.1",
+      }),
       chooseGame: async () => game.gamePath,
       chooseArchive: async () => "/Preview/mod.zip",
       openUrl: async () => {},

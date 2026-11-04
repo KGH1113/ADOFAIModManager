@@ -173,7 +173,7 @@ describe("desktop user journeys", () => {
     const catalog = vi
       .spyOn(api.catalog, "list")
       .mockImplementation(async () =>
-        (await list()).map((mod) => (mod.id === "jrp" ? { ...mod, version: "2.0" } : mod)),
+        (await list()).map((mod) => (mod.id === "element" ? { ...mod, version: "2.0" } : mod)),
       );
     const download = vi.spyOn(api.catalog, "download");
     const install = vi.spyOn(api.mods, "install");
@@ -197,7 +197,7 @@ describe("desktop user journeys", () => {
     expect(catalog).not.toHaveBeenCalled();
     await user.click(check);
     await screen.findByText("Updates available: 1");
-    await user.click(screen.getByRole("button", { name: "Update JipperResourcePack" }));
+    await user.click(screen.getByRole("button", { name: "Update Element" }));
     await screen.findByRole("dialog", { name: "Confirm mod installation" });
     expect(download).toHaveBeenCalled();
     expect(install).not.toHaveBeenCalled();
@@ -234,7 +234,7 @@ describe("desktop user journeys", () => {
     await api.mods.install(path, { path: "/Preview/mod.zip" });
     const list = api.catalog.list;
     vi.spyOn(api.catalog, "list").mockImplementation(async () =>
-      (await list()).map((mod) => (mod.id === "jrp" ? { ...mod, version: "2.0" } : mod)),
+      (await list()).map((mod) => (mod.id === "element" ? { ...mod, version: "2.0" } : mod)),
     );
     vi.spyOn(api.mods, "inspect").mockResolvedValue({
       id: "WrongMod",
@@ -257,7 +257,7 @@ describe("desktop user journeys", () => {
     const check = await screen.findByRole("button", { name: "Check for updates" });
     await waitFor(() => expect(check.hasAttribute("disabled")).toBe(false));
     await user.click(check);
-    await user.click(await screen.findByRole("button", { name: "Update JipperResourcePack" }));
+    await user.click(await screen.findByRole("button", { name: "Update Element" }));
     await waitFor(() => expect(useOperations.getState().error).toBe("mods.update.archiveMismatch"));
     expect(screen.queryByRole("dialog", { name: "Confirm mod installation" })).toBeNull();
     expect(discard).toHaveBeenCalledTimes(1);
@@ -360,17 +360,35 @@ describe("desktop user journeys", () => {
       ),
     ).toBe(true);
     await user.click(screen.getByRole("button", { name: "Got it" }));
-    await user.click(await screen.findByTestId("install-jrp"));
-    await waitFor(() => expect(screen.getByTestId("install-jrp").textContent).toBe("Installed"));
-    expect(setup).toHaveBeenCalledWith("/Preview/ADanceOfFireAndIce.app", "jrp-defaults");
-    await user.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Key bindings" });
-    await user.click(await screen.findByRole("button", { name: "Save & continue" }));
-    await user.click(await screen.findByTestId("install-chatter"));
-    await waitFor(() =>
-      expect(setup).toHaveBeenCalledWith("/Preview/ADanceOfFireAndIce.app", "chatter-defaults"),
+    await screen.findByRole("heading", { name: "Element" });
+    expect(screen.getByRole("tab", { name: /Play info/ }).getAttribute("aria-selected")).toBe(
+      "true",
     );
-    await user.click(await screen.findByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("tab", { name: /Effect removal/ }));
+    const effects = screen.getByRole("switch", { name: /Effect removal/ });
+    const removed = effects.getAttribute("aria-checked") === "true";
+    await user.click(effects);
+    expect(effects.getAttribute("aria-checked")).toBe(String(!removed));
+    await user.click(await screen.findByTestId("install-element"));
+    await waitFor(() =>
+      expect(screen.getByTestId("install-element").textContent).toBe("Installed"),
+    );
+    expect(setup).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Before your first launch" });
+    await user.click(screen.getByRole("tab", { name: /Your play keys/ }));
+    const board = await screen.findByRole("button", { name: /Key checker/ });
+    fireEvent.focus(board);
+    fireEvent.keyDown(board, { code: "KeyF" });
+    expect(screen.getByText("F doesn't count with the 16K tab")).toBeTruthy();
+    fireEvent.keyDown(board, { code: "Lang1" });
+    expect(screen.getByText("R option works in the game")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "4K" }));
+    fireEvent.keyDown(board, { code: "Space" });
+    expect(screen.getByText("Space doesn't count with the 4K tab")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByRole("button", { name: "Left control + F9" });
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => expect(usePreferences.getState().onboarding.step).toBe("tufIntro"));
     const skipTufIntro = await screen.findByRole("button", { name: "Skip" });
     expect(skipTufIntro.closest(".onboarding-footer")).not.toBeNull();

@@ -42,10 +42,15 @@ function projectIdentity(value?: string | null): string | null {
     return null;
   }
 }
+// Installed UMM ids whose TUF slug differs from the id. Mods the onboarding no longer
+// recommends keep their alias so existing installs still find their updates.
+const catalogAliases = [
+  ...Object.values(recommendations),
+  { installedId: "JipperResourcePack", slug: "jrp" },
+  { installedId: "KeyboardChatterBlocker", slug: "keyboardchatterblocker" },
+];
 export function findCatalogMod(mod: InstalledMod, catalog: CatalogMod[]): CatalogMod | undefined {
-  const alias = Object.values(recommendations).find(
-    (item) => identity(item.installedId) === identity(mod.id),
-  );
+  const alias = catalogAliases.find((item) => identity(item.installedId) === identity(mod.id));
   if (alias) return catalog.find((item) => item.id === alias.slug);
   const home = projectIdentity(mod.homePage);
   if (home) {

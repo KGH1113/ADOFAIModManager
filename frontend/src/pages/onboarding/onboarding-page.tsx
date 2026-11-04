@@ -5,19 +5,21 @@ import { useManager } from "@/app/manager-provider";
 import { GameSetupCard } from "@/components/installation/game-setup-card";
 import { CinematicScene } from "@/components/onboarding/cinematic-scene";
 import { ExperienceScene } from "@/components/onboarding/experience-scene";
-import { JrpKeysStep } from "@/components/onboarding/jrp-keys-step";
 import { AlphaGuide, ModSettingsGuide } from "@/components/onboarding/setup-guides";
 import { StagedScene } from "@/components/onboarding/staged-scene";
 import { TufIntro } from "@/components/onboarding/tuf-intro";
 import { WelcomeScene } from "@/components/onboarding/welcome-scene";
 import { LanguageMenu } from "@/components/settings/language-menu";
 import { useRecommendations } from "@/hooks/mods/use-recommendations";
-import { type OnboardingEvent, setupSteps } from "@/models/onboarding/onboarding-model";
+import { hasInstalledMod } from "@/models/installation/installation-model";
 import {
-  MoreModsStep,
-  RecommendationStep,
-  TufStep,
-} from "@/sections/onboarding/recommendation-step";
+  type OnboardingEvent,
+  recommendations as recommended,
+  setupSteps,
+} from "@/models/onboarding/onboarding-model";
+import { ElementStartStep } from "@/sections/onboarding/element-start-step";
+import { ElementStep } from "@/sections/onboarding/element-step";
+import { MoreModsStep, TufStep } from "@/sections/onboarding/recommendation-step";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { usePreferences } from "@/state/preferences/preferences-store";
@@ -27,10 +29,8 @@ export function OnboardingPage() {
   const { game, busy, locked } = useManager();
   const { step } = usePreferences((state) => state.onboarding);
   const alphaInstalled = !!game.data?.alphaInstalled;
-  const jrpInstalled = !!game.data?.mods.some(
-    (mod) => mod.installed && mod.id.toLowerCase() === "jipperresourcepack",
-  );
-  const sequence = setupSteps(alphaInstalled && step !== "alpha", jrpInstalled);
+  const elementInstalled = hasInstalledMod(game.data, recommended.element.installedId);
+  const sequence = setupSteps(alphaInstalled && step !== "alpha", elementInstalled);
   const recommendations = useRecommendations();
   const [navigation, setNavigation] = useState({ step, direction: 1 });
   if (navigation.step !== step)
@@ -39,7 +39,7 @@ export function OnboardingPage() {
       direction: sequence.indexOf(step) > sequence.indexOf(navigation.step) ? 1 : -1,
     });
   const dispatch = usePreferences((state) => state.send);
-  const send = (event: OnboardingEvent) => dispatch(event, alphaInstalled, jrpInstalled);
+  const send = (event: OnboardingEvent) => dispatch(event, alphaInstalled, elementInstalled);
   const complete = usePreferences((state) => state.complete);
   const progress = sequence.indexOf(step);
   return (
@@ -106,15 +106,8 @@ export function OnboardingPage() {
               </StagedScene>
             )}
             {step === "modSettings" && <ModSettingsGuide next={() => send("next")} />}
-            {step === "keyBindings" && <JrpKeysStep next={() => send("next")} />}
-            {(step === "jrp" || step === "chatter") && (
-              <RecommendationStep
-                key={step}
-                kind={step}
-                flow={recommendations}
-                next={() => send("next")}
-              />
-            )}
+            {step === "element" && <ElementStep flow={recommendations} next={() => send("next")} />}
+            {step === "elementStart" && <ElementStartStep next={() => send("next")} />}
             {step === "tufIntro" && <TufIntro next={() => send("next")} disabled={locked} />}
             {step === "tuf" && <TufStep flow={recommendations} next={() => send("next")} />}
             {step === "more" && <MoreModsStep flow={recommendations} next={() => send("next")} />}

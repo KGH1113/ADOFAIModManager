@@ -22,7 +22,7 @@ describe("recommended installation plans", () => {
       await installRecommendation(
         api,
         path,
-        "jrp",
+        "jalib",
         session(),
         new AbortController().signal,
         () => {},
@@ -44,7 +44,7 @@ describe("recommended installation plans", () => {
       expect(install).toHaveBeenCalledTimes(shouldUpdate ? 2 : 1);
     }
   });
-  it("inspects all archives first, installs JALib before JRP, and reuses existing dependencies", async () => {
+  it("inspects all archives first, installs JALib before its dependant, and reuses existing dependencies", async () => {
     const api = await prepare();
     const order: string[] = [];
     const original = api.mods.install;
@@ -56,34 +56,61 @@ describe("recommended installation plans", () => {
     await installRecommendation(
       api,
       path,
-      "jrp",
-      session(),
-      new AbortController().signal,
-      () => {},
-    );
-    expect(order).toEqual(["JALib", "JipperResourcePack"]);
-    expect(discard).toHaveBeenCalledTimes(2);
-    await installRecommendation(
-      api,
-      path,
       "calibration",
       session(),
       new AbortController().signal,
       () => {},
     );
-    expect(order).toEqual(["JALib", "JipperResourcePack", "BetterCalibration"]);
+    expect(order).toEqual(["JALib", "BetterCalibration"]);
+    expect(discard).toHaveBeenCalledTimes(2);
+    await installRecommendation(
+      api,
+      path,
+      "jalib",
+      session(),
+      new AbortController().signal,
+      () => {},
+    );
+    expect(order).toEqual(["JALib", "BetterCalibration"]);
+  });
+  it("installs Element on its own without dependencies or onboarding settings", async () => {
+    const api = await prepare();
+    const download = vi.spyOn(api.catalog, "download");
+    const setup = vi.spyOn(api.mods, "configureOnboarding");
+    const game = await installRecommendation(
+      api,
+      path,
+      "element",
+      session(),
+      new AbortController().signal,
+      () => {},
+    );
+    expect(game.mods.map((m) => m.id)).toEqual(["Element"]);
+    expect(download).toHaveBeenCalledOnce();
+    expect(download).toHaveBeenCalledWith(
+      "https://api.tuforums.com/v2/mods/element/1.2.0/download",
+      expect.any(String),
+    );
+    expect(setup).not.toHaveBeenCalled();
   });
   it("rejects mismatched archives before installing any dependency and discards downloads", async () => {
     const api = await prepare();
     const inspect = api.mods.inspect;
     vi.spyOn(api.mods, "inspect").mockImplementation(async (game, source) => {
       const info = await inspect(game, source);
-      return info.id === "JipperResourcePack" ? { ...info, id: "WrongMod" } : info;
+      return info.id === "BetterCalibration" ? { ...info, id: "WrongMod" } : info;
     });
     const install = vi.spyOn(api.mods, "install");
     const discard = vi.spyOn(api.catalog, "discard");
     await expect(
-      installRecommendation(api, path, "jrp", session(), new AbortController().signal, () => {}),
+      installRecommendation(
+        api,
+        path,
+        "calibration",
+        session(),
+        new AbortController().signal,
+        () => {},
+      ),
     ).rejects.toThrow("archiveMismatch");
     expect(install).not.toHaveBeenCalled();
     expect(discard).toHaveBeenCalledTimes(2);
@@ -94,17 +121,17 @@ describe("recommended installation plans", () => {
     await installRecommendation(
       api,
       path,
-      "jrp",
+      "countdown",
       session(),
       new AbortController().signal,
       () => {},
     );
     const flow = session();
-    await installRecommendation(api, path, "chatter", flow, new AbortController().signal, () => {});
-    expect(setup).toHaveBeenCalledWith(path, "jrp-defaults");
-    expect(setup).toHaveBeenCalledWith(path, "chatter-defaults");
     await installRecommendation(api, path, "tuf", flow, new AbortController().signal, () => {});
-    expect(setup).toHaveBeenCalledTimes(3);
+    expect(setup).toHaveBeenCalledWith(path, "countdown-defaults");
+    expect(setup).toHaveBeenCalledWith(path, "tuf-overlay");
+    await installRecommendation(api, path, "tuf", flow, new AbortController().signal, () => {});
+    expect(setup).toHaveBeenCalledTimes(2);
     await installRecommendation(
       api,
       path,
@@ -113,7 +140,7 @@ describe("recommended installation plans", () => {
       new AbortController().signal,
       () => {},
     );
-    expect(setup).toHaveBeenCalledTimes(3);
+    expect(setup).toHaveBeenCalledTimes(2);
   });
   it("retries configuration failures without reinstalling a mod", async () => {
     const api = await prepare();
@@ -141,7 +168,7 @@ describe("recommended installation plans", () => {
     const install = vi.spyOn(api.mods, "install");
     const discard = vi.spyOn(api.catalog, "discard");
     await expect(
-      installRecommendation(api, path, "jrp", session(), abort.signal, () => {}),
+      installRecommendation(api, path, "element", session(), abort.signal, () => {}),
     ).rejects.toThrow("cancelled");
     expect(install).not.toHaveBeenCalled();
     expect(discard).toHaveBeenCalledTimes(1);
@@ -152,7 +179,14 @@ describe("recommended installation plans", () => {
     const download = vi.spyOn(api.catalog, "download");
     const install = vi.spyOn(api.mods, "install");
     await expect(
-      installRecommendation(api, path, "jrp", session(), new AbortController().signal, () => {}),
+      installRecommendation(
+        api,
+        path,
+        "element",
+        session(),
+        new AbortController().signal,
+        () => {},
+      ),
     ).rejects.toThrow("TUF is down");
     expect(catalog).toHaveBeenCalledOnce();
     expect(download).not.toHaveBeenCalled();
@@ -176,7 +210,7 @@ describe("recommended installation plans", () => {
     await installRecommendation(
       api,
       path,
-      "jrp",
+      "calibration",
       session(),
       new AbortController().signal,
       () => {},
@@ -186,18 +220,27 @@ describe("recommended installation plans", () => {
       expect.any(String),
     );
     expect(download).toHaveBeenCalledWith(
-      "https://api.tuforums.com/v2/mods/jrp/1.5.2.0/download",
+      "https://api.tuforums.com/v2/mods/bettercalibration/1.2.2.0/download",
       expect.any(String),
     );
   });
   it("resolves the complete TUF plan before downloading when a recommendation is missing", async () => {
     const api = await prepare();
     const catalog = await api.catalog.list();
-    vi.spyOn(api.catalog, "list").mockResolvedValue(catalog.filter((mod) => mod.id !== "jrp"));
+    vi.spyOn(api.catalog, "list").mockResolvedValue(
+      catalog.filter((mod) => mod.id !== "bettercalibration"),
+    );
     const download = vi.spyOn(api.catalog, "download");
     const install = vi.spyOn(api.mods, "install");
     await expect(
-      installRecommendation(api, path, "jrp", session(), new AbortController().signal, () => {}),
+      installRecommendation(
+        api,
+        path,
+        "calibration",
+        session(),
+        new AbortController().signal,
+        () => {},
+      ),
     ).rejects.toThrow("download_unavailable");
     expect(download).not.toHaveBeenCalled();
     expect(install).not.toHaveBeenCalled();

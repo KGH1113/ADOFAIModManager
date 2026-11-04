@@ -4,9 +4,8 @@ export const onboardingSteps = [
   "alpha",
   "installation",
   "modSettings",
-  "jrp",
-  "keyBindings",
-  "chatter",
+  "element",
+  "elementStart",
   "tufIntro",
   "tuf",
   "more",
@@ -18,17 +17,19 @@ export interface OnboardingState {
   readyBack: OnboardingStep;
 }
 export type OnboardingEvent = "continue" | "returning" | "new" | "next" | "defer" | "back";
-export const setupSteps = (alphaInstalled: boolean, jrpInstalled = true) =>
+// The first-launch guide only applies once Element is actually in the Mods folder.
+export const setupSteps = (alphaInstalled: boolean, elementInstalled = true) =>
   onboardingSteps.filter(
-    (step) => (!alphaInstalled || step !== "alpha") && (jrpInstalled || step !== "keyBindings"),
+    (step) =>
+      (!alphaInstalled || step !== "alpha") && (elementInstalled || step !== "elementStart"),
   );
 export function transition(
   state: OnboardingState,
   event: OnboardingEvent,
   alphaInstalled = false,
-  jrpInstalled = true,
+  elementInstalled = true,
 ): OnboardingState {
-  const sequence = setupSteps(alphaInstalled, jrpInstalled);
+  const sequence = setupSteps(alphaInstalled, elementInstalled);
   switch (event) {
     case "continue":
       return state.step === "welcome" ? { ...state, step: "experience" } : state;
@@ -64,17 +65,7 @@ export interface RecommendedMod {
 }
 export const recommendations = {
   jalib: { installedId: "JALib", name: "JALib", slug: "jalib" },
-  jrp: {
-    installedId: "JipperResourcePack",
-    name: "JipperResourcePack",
-    slug: "jrp",
-    dependencies: ["jalib"],
-  },
-  chatter: {
-    installedId: "KeyboardChatterBlocker",
-    name: "Keyboard Chatter Blocker",
-    slug: "keyboardchatterblocker",
-  },
+  element: { installedId: "Element", name: "Element", slug: "element" },
   tufLite: {
     installedId: "TUFHelperLite",
     name: "TUFHelperLite",
@@ -102,8 +93,7 @@ export const recommendations = {
 } satisfies Record<string, RecommendedMod>;
 export type RecommendationKey =
   | "jalib"
-  | "jrp"
-  | "chatter"
+  | "element"
   | "tufLite"
   | "tuf"
   | "countdown"
@@ -112,6 +102,9 @@ export type RecommendationKey =
   | "effects"
   | "ipc";
 export const moreMods: RecommendationKey[] = ["countdown", "calibration", "youtube", "effects"];
+// Element's Effects tab already removes level effects, so a second remover would only overlap.
+export const moreModsFor = (elementInstalled: boolean) =>
+  elementInstalled ? moreMods.filter((key) => key !== "effects") : moreMods;
 export type OnboardingSetup =
   | "jrp-defaults"
   | "chatter-defaults"

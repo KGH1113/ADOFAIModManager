@@ -20,3 +20,6 @@ export function mapInstallation(dto: EngineResponseDto) {
     log: dto.log,
   };
 }
+/** Whether a mod with this UMM id is installed. UMM ids are case-insensitive. */
+export const hasInstalledMod = (installation: Installation | undefined, id: string) =>
+  !!installation?.mods.some((mod) => mod.installed && mod.id.toLowerCase() === id.toLowerCase());

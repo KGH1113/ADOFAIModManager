@@ -20,7 +20,7 @@ interface Preferences {
   navigate(page: Page): void;
   setGamePath(path: string | null): void;
   setLanguage(language: Language): void;
-  send(event: OnboardingEvent, alphaInstalled?: boolean, jrpInstalled?: boolean): void;
+  send(event: OnboardingEvent, alphaInstalled?: boolean, elementInstalled?: boolean): void;
   complete(installed: boolean): void;
   replay(): void;
   setSettingsOpen(open: boolean): void;
@@ -41,9 +41,9 @@ export const usePreferences = create<Preferences>()(
       navigate: (page) => set({ page }),
       setGamePath: (gamePath) => set({ gamePath }),
       setLanguage: (language) => set({ language }),
-      send: (event, alphaInstalled, jrpInstalled) =>
+      send: (event, alphaInstalled, elementInstalled) =>
         set((state) => ({
-          onboarding: transition(state.onboarding, event, alphaInstalled, jrpInstalled),
+          onboarding: transition(state.onboarding, event, alphaInstalled, elementInstalled),
         })),
       complete: (installed) =>
         set({ completed: true, welcomeOpen: false, page: installed ? "mods" : "install" }),
