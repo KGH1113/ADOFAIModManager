@@ -4,7 +4,7 @@ ADOFAI용 Unity Mod Manager 설치 및 모드 관리 앱입니다. macOS·Window
 
 ## 기능
 
-- 처음 실행 시 웰컴, 모딩 경험 선택, Steam alpha 안내, UMM 설치, 게임 내 설정 안내, 추천 모드 설치와 Key4·Key8·Key10·Key12·Key16 키 배치 설정
+- 처음 실행 시 웰컴, 모딩 경험 선택, Steam alpha 안내, UMM 설치, 게임 내 설정 안내, Element 소개·설치와 첫 실행 안내, TUF 소개와 추천 모드 설치
 - 기존 남색·파랑·분홍 디자인과 앱 아이콘 유지. 궤도 그래픽에는 앱 아이콘을 넣지 않음
 - Motion의 포인터 반응·스프링과 GSAP의 단계별 등장·설치 완료 연출
 - Steam 라이브러리 자동 탐색, 수동 게임 선택, UMM 설치·복구·후크 제거·원본 복원
@@ -76,7 +76,9 @@ Linux 게임 탐색은 일반 Steam·Flatpak Steam·추가 Steam 라이브러리
 
 UMM 0.32.5 호환 payload와 Harmony 2.3.6 ABI/MonoMod.Core 1.3.3 ARM64 호환 빌드를 포함합니다. 엔진은 게임 실행 중 변경을 차단하고, 게임 어셈블리와 모드 교체 전에 백업합니다. 모드 삭제는 확인 후 영구 삭제됩니다. ZIP은 메타데이터·파일 수·압축 해제 용량·심볼릭 링크·경로 이탈을 검사합니다.
 
-새로 설치하는 JipperResourcePack 1.5.2.0·1.5.3.0, KeyboardChatterBlocker 0.1.2, TUFHelper 3.1.1, Enhanced Countdown 0.2.0–0.2.3에는 추천 기본값을 적용합니다. JRP와 KCB의 키 제한 프로필을 동기화하고, JRP가 함께 활성화되어 있으면 TUF의 중복 표시를 끕니다. 기존 설정의 키 배치·스타일·다운로드 경로와 알 수 없는 항목을 보존하고, 첫 설정 수정 전에 `.amm-backup`을 만듭니다. 재설치와 업데이트에서도 설정 파일을 유지합니다. JRP 설치 다음 화면에서 Key4·Key8·Key10·Key12·Key16을 고르고 키뷰어 배치에 맞춰 입력을 편집할 수 있습니다. Key4는 양손 중지·검지, Key8은 엄지를 제외한 손가락을 사용합니다. 입력 대기 중 해당 손가락이 내려갔다가 등록 후 올라옵니다. 엄지 키 두 개는 같은 엄지 동작을 사용하고, 손날 키는 호버 색만 표시합니다. 선택한 스타일과 키 배열만 저장하고 다른 스타일의 배열과 발·Ghost·사용자 지정 키 텍스트를 보존합니다. 기존 Key20 설정은 보존하되 편집 화면에서는 Key16을 선택합니다. JRP의 JALib과 TUFHelperLite의 ADOFAI IPC 의존성도 자동으로 설치합니다.
+새로 설치하는 JipperResourcePack 1.5.2.0·1.5.3.0, KeyboardChatterBlocker 0.1.2, TUFHelper 3.1.1, Enhanced Countdown 0.2.0–0.2.3에는 추천 기본값을 적용합니다. JRP와 KCB의 키 제한 프로필을 동기화하고, JRP나 Element가 활성화되어 있으면 TUF의 중복 표시를 끕니다. 기존 설정의 키 배치·스타일·다운로드 경로와 알 수 없는 항목을 보존하고, 첫 설정 수정 전에 `.amm-backup`을 만듭니다. 재설치와 업데이트에서도 설정 파일을 유지합니다. Better Calibration의 JALib 의존성도 자동으로 설치합니다.
+
+온보딩은 오버레이·키뷰어·채터 방지 모드로 Element(TUF `element`)를 추천합니다. Element 화면은 기본 HUD를 그린 게임 화면으로 플레이 정보·키뷰어·이펙트 정리·입력 튐 방지를 한 번씩 보여 주고, 설치 후에는 첫 실행 권한(macOS 손쉬운 사용·입력 모니터링, Windows UAC·방화벽), ElementNote 키 리미터가 받는 키, 왼쪽 Ctrl + F9를 안내합니다. 이 안내는 Element의 기본값을 그대로 옮긴 것이라 Element의 기본 탭이나 단축키가 바뀌면 `frontend/src/models/onboarding/element-guide.ts`도 함께 고칩니다. Element가 설치되어 있으면 더 많은 모드에서 Enhanced Effect Remover를 숨깁니다.
 
 모드 목록의 별도 프리셋 편집은 ADOFAI Tweaks 2.9.3과 Jipper Key Viewer 1.7.2를 지원합니다. Jipper Key Viewer 프리셋은 게임에서 생성한 기존 프로필을 사용합니다.
 
