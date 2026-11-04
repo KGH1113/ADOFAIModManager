@@ -135,6 +135,21 @@ internal static class ModDefaultsChecks
         var category = json["IngameElementsSettings"]!["PPDisplayer"]!["Categories"]!["PPDisplayer"]!;
         check(category["$type"]!.GetValue<string>() == "keep" && category["IsShowScore"]!.GetValue<bool>() && category["IsShowSpeed"]!.GetValue<bool>(), "Enable both score subfields without removing type data");
 
+        var element = Mod("Element", "1.2.0");
+        bool Shown(string id) => Read(tufPath)["IngameElementsSettings"]?[id]?["IsShowed"]?.GetValue<bool>() ?? true;
+        File.WriteAllText(tufPath, "{}");
+        setup.Apply([tuf, element with { Enabled = false }], "tuf-overlay");
+        check(Shown("Progress") && Shown("Combo"), "A disabled Element leaves TUF overlays on");
+        setup.Reconcile([tuf, element], "Element");
+        check(!Shown("Progress") && !Shown("Combo") && !Shown("Judgements") && !Shown("CurrentBPM") && !Shown("RealBPM"), "Installing Element after TUF hides duplicate overlays");
+        check(Shown("Leaderboard") && Shown("LevelInfo") && Shown("PPDisplayer"), "Element keeps TUF-only overlays on");
+        File.WriteAllText(tufPath, "{}");
+        setup.Apply([tuf, element], "tuf-overlay");
+        check(!Shown("Combo") && Shown("Leaderboard"), "Installing TUF next to Element hides duplicate overlays");
+        var unrelated = Read(tufPath).ToJsonString();
+        setup.Reconcile([tuf, element], "BetterCalibration");
+        check(Read(tufPath).ToJsonString() == unrelated, "Other mods don't touch TUF settings");
+
         setup.Apply([countdown], "countdown-defaults");
         check(Read(Path.Combine(countdown.Path, "UpdateSettings.json"))["ReceiveBetaUpdates"]!.GetValue<bool>(), "Enable Countdown beta updates in the right file");
         check(!File.Exists(Path.Combine(countdown.Path, "Settings.json")), "Don't write JALib settings to Countdown");

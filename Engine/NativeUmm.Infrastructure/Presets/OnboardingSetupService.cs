@@ -89,8 +89,9 @@ public sealed class OnboardingSetupService
         if (changedId.Equals("JipperResourcePack", StringComparison.OrdinalIgnoreCase) ||
             changedId.Equals("KeyboardChatterBlocker", StringComparison.OrdinalIgnoreCase))
             SynchronizeKeys(mods);
-        if (changedId.Equals("JipperResourcePack", StringComparison.OrdinalIgnoreCase) &&
-            Find(mods, "TUFHelper") is { Version: "3.1.1" } && ActiveJrp(mods))
+        var overlay = (changedId.Equals("JipperResourcePack", StringComparison.OrdinalIgnoreCase) && ActiveJrp(mods)) ||
+                      (changedId.Equals("Element", StringComparison.OrdinalIgnoreCase) && ActiveElement(mods));
+        if (overlay && Find(mods, "TUFHelper") is { Version: "3.1.1" })
             ConfigureTuf(mods, defaults: false);
     }
 
@@ -235,7 +236,8 @@ public sealed class OnboardingSetupService
                     category["IsShowSpeed"] = true;
                 }
             }
-            if (!ActiveJrp(mods)) return;
+            // JRP and Element already draw these, so TUFHelper's copies would only overlap them.
+            if (!ActiveJrp(mods) && !ActiveElement(mods)) return;
             Element(elements, "Progress", 0, 2.5, -48)["IsShowed"] = false;
             Element(elements, "Combo", 1, 0, -125)["IsShowed"] = false;
             Element(elements, "Judgements", 7)["IsShowed"] = false;
@@ -255,6 +257,8 @@ public sealed class OnboardingSetupService
         return elements[id] as JsonObject ?? throw new InvalidDataException($"Invalid TUF overlay element: {id}");
     }
 
+    // Element's settings are left alone, so any Element version counts.
+    private static bool ActiveElement(IReadOnlyList<ModInfo> mods) => Find(mods, "Element") is { Enabled: true };
     private static bool ActiveJrp(IReadOnlyList<ModInfo> mods) => Find(mods, "JipperResourcePack") is { Version: "1.5.2.0" or "1.5.3.0", Enabled: true };
     private static ModInfo? Find(IReadOnlyList<ModInfo> mods, string id) => mods.FirstOrDefault(m => m.Installed && m.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
     private static ModInfo Require(IReadOnlyList<ModInfo> mods, string id, params string[] versions)
