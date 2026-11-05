@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Text;
 using NativeUmm.Domain.Games;
 
@@ -12,8 +13,11 @@ namespace NativeUmm.Infrastructure.Installation;
 /// Linux ships run.sh and libdoorstop.so. macOS ships run.sh and libdoorstop.dylib.
 /// run.sh assigns enabled and target_assembly, then exports DOORSTOP_ENABLED and
 /// DOORSTOP_TARGET_ASSEMBLY. The Unix loader enables Doorstop only when that value is "1"
-/// (src/nix/config.c). Those files do not inject unless the game is started through run.sh
-/// or a preload wrapper; launching the binary or .app directly skips Doorstop.
+/// (src/nix/config.c). Those files do not inject unless Steam's LaunchOptions for this
+/// app actually run run.sh, or there is no Steam launch option and a desktop file or
+/// preload wrapper is what starts the game. A leftover .desktop does not override
+/// LaunchOptions of plain %command%. Userdata is read from the primary Steam client,
+/// not from the library folder that contains the game.
 /// Relative targets resolve from the game root. On a Unix host, a Windows drive path such
 /// as Z:\... is resolved through the game's Proton dosdevices link, or Z: → / when Wine's
 /// default root mapping is the only one available.
@@ -264,40 +268,120 @@ internal static class DoorstopProbe
         return Directory.Exists(path) ? Path.GetFullPath(path) : null;
     }
 
-    private static bool UnixLaunchUsesDoorstop(GameInstallation layout, GameRuntime runtime)
+    private enum SteamLaunch
     {
-        if (SteamLaunchOptions(layout.GameRoot) is string options &&
-            options.Contains("run.sh", StringComparison.Ordinal))
-            return true;
-        if (DesktopFileLaunches(layout.GameRoot))
-            return true;
-        return ExecutablePreloadsDoorstop(layout, runtime);
+        Unknown,
+        Direct,
+        Doorstop
     }
 
-    private static string? SteamLaunchOptions(string gameRoot)
+    private static bool UnixLaunchUsesDoorstop(GameInstallation layout, GameRuntime runtime)
+    {
+        switch (ReadSteamLaunch())
+        {
+            case SteamLaunch.Doorstop:
+                return true;
+            case SteamLaunch.Direct:
+                // %command% starts the game binary. A leftover .desktop is not that process.
+                return ExecutablePreloadsDoorstop(layout, runtime);
+            default:
+                if (DesktopFileLaunches(layout.GameRoot))
+                    return true;
+                return ExecutablePreloadsDoorstop(layout, runtime);
+        }
+    }
+
+    private static SteamLaunch ReadSteamLaunch()
     {
         try
         {
-            var steam = SteamDirectory(gameRoot, "steamapps");
-            var root = steam is null ? null : Directory.GetParent(steam)?.FullName;
-            var userdata = root is null ? null : Path.Combine(root, "userdata");
-            if (userdata is null || !Directory.Exists(userdata))
-                return null;
-            foreach (var user in Directory.EnumerateDirectories(userdata))
+            var sawOptions = false;
+            foreach (var root in PrimarySteamRoots())
             {
-                var config = Path.Combine(user, "config", "localconfig.vdf");
-                if (!File.Exists(config))
+                var userdata = Path.Combine(root, "userdata");
+                if (!Directory.Exists(userdata))
                     continue;
-                var options = AppLaunchOptions(File.ReadAllText(config));
-                if (options is not null && options.Contains("run.sh", StringComparison.Ordinal))
-                    return options;
+                foreach (var user in Directory.EnumerateDirectories(userdata))
+                {
+                    var config = Path.Combine(user, "config", "localconfig.vdf");
+                    if (!File.Exists(config))
+                        continue;
+                    var options = AppLaunchOptions(File.ReadAllText(config));
+                    if (options is null)
+                        continue;
+                    if (options.Contains("run.sh", StringComparison.Ordinal))
+                        return SteamLaunch.Doorstop;
+                    sawOptions = true;
+                }
             }
+            return sawOptions ? SteamLaunch.Direct : SteamLaunch.Unknown;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return null;
+            return SteamLaunch.Unknown;
         }
-        return null;
+    }
+
+    private static IEnumerable<string> PrimarySteamRoots()
+    {
+        var roots = new List<string>();
+        var seen = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        void Add(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+            try
+            {
+                var full = Path.GetFullPath(path);
+                if (Directory.Exists(full) && seen.Add(full))
+                    roots.Add(full);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+            }
+        }
+
+        // Set by Proton to the Steam client install, which owns userdata even for other libraries.
+        Add(Environment.GetEnvironmentVariable("STEAM_COMPAT_CLIENT_INSTALL_PATH"));
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrEmpty(home))
+        {
+            Add(Path.Combine(home, ".steam", "root"));
+            Add(Path.Combine(home, ".steam", "steam"));
+            Add(Path.Combine(home, ".local", "share", "Steam"));
+            Add(Path.Combine(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam"));
+            Add(Path.Combine(home, "Library", "Application Support", "Steam"));
+        }
+        if (OperatingSystem.IsWindows())
+            AddWindowsSteamRoots(Add);
+        return roots;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static void AddWindowsSteamRoots(Action<string?> add)
+    {
+        AddRegistry(@"Software\Valve\Steam", "SteamPath", Microsoft.Win32.Registry.CurrentUser, add);
+        AddRegistry(@"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath", Microsoft.Win32.Registry.LocalMachine, add);
+        AddRegistry(@"SOFTWARE\Valve\Steam", "InstallPath", Microsoft.Win32.Registry.LocalMachine, add);
+        var programs = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        if (!string.IsNullOrEmpty(programs))
+            add(Path.Combine(programs, "Steam"));
+    }
+
+    private static void AddRegistry(string keyPath, string valueName, Microsoft.Win32.RegistryKey hive, Action<string?> add)
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+        try
+        {
+            using var key = hive.OpenSubKey(keyPath);
+            if (key?.GetValue(valueName) is string value)
+                add(value);
+        }
+        catch (Exception)
+        {
+            // Registry discovery is optional; the well-known install paths remain.
+        }
     }
 
     private static string? AppLaunchOptions(string text)
