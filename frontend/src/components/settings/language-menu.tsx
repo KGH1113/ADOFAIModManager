@@ -11,6 +11,7 @@ export function LanguageMenu() {
     { key: "system", name: t("settings.system") },
     { key: "ko", name: "한국어" },
     { key: "en", name: "English" },
+    { key: "es", name: "Español (Latinoamérica)" },
     { key: "zh", name: "简体中文" },
   ];
   return (

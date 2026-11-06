@@ -6,7 +6,7 @@ import {
   transition,
 } from "@/models/onboarding/onboarding-model";
 export type Page = "install" | "catalog" | "mods" | "logs";
-export type Language = "system" | "ko" | "en" | "zh";
+export type Language = "system" | "ko" | "en" | "es" | "zh";
 interface Preferences {
   page: Page;
   gamePath: string | null;
@@ -81,7 +81,7 @@ export const usePreferences = create<Preferences>()(
           completed: value?.completed === true,
           welcomeSeen: value?.welcomeSeen === true || value?.completed === true,
           gamePath: typeof value?.gamePath === "string" ? value.gamePath : null,
-          language: ["system", "ko", "en", "zh"].includes(value?.language ?? "")
+          language: ["system", "ko", "en", "es", "zh"].includes(value?.language ?? "")
             ? (value?.language as Language)
             : "system",
         };
