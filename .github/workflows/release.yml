@@ -81,6 +81,7 @@ jobs:
         # Wayland sessions always provide the system library.
         if: runner.os == 'Linux'
         env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPIMAGE_EXTRACT_AND_RUN: '1'
@@ -100,7 +101,7 @@ jobs:
           echo "Removed: $removed"
           rm -f "$dir/$app" "$dir/$app.sig"
           "$tool" "$work/squashfs-root" "$dir/$app"
-          bun run tauri signer sign "$dir/$app"
+          bun run tauri signer sign --app-version "${RELEASE_TAG#v}" "$dir/$app"
           test -s "$dir/$app.sig"
       - uses: actions/upload-artifact@v4
         with:

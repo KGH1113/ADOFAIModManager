@@ -14,6 +14,21 @@ export function releaseAssetName(path) {
   return basename(path).replace(/[^A-Za-z0-9._-]/g, ".");
 }
 
+// This checks version metadata; the updater also verifies the cryptographic signature.
+export function validateSignedVersion(signature, version, platform) {
+  const comment = Buffer.from(signature, "base64").toString("utf8").split(/\r?\n/)[2];
+  const signedVersion = comment?.startsWith("trusted comment: ")
+    ? comment
+        .slice("trusted comment: ".length)
+        .split("\t")
+        .find((field) => field.startsWith("version:"))
+        ?.slice("version:".length)
+    : undefined;
+  if (signedVersion !== version) {
+    throw new Error(`Missing or mismatched signed version for ${platform}`);
+  }
+}
+
 export function createManifest(version, tag, repository, files, readSignature) {
   if (!/^\d+\.\d+\.\d+$/.test(version) || tag !== `v${version}`) {
     throw new Error("Release tag must match the stable application version (vX.Y.Z).");
@@ -26,6 +41,7 @@ export function createManifest(version, tag, repository, files, readSignature) {
     const artifact = matches[0];
     const signature = readSignature(`${artifact}.sig`).trim();
     if (!signature) throw new Error(`Empty signature for ${platform}`);
+    validateSignedVersion(signature, version, platform);
     platforms[platform] = {
       signature,
       url: `https://github.com/${repository}/releases/download/${tag}/${releaseAssetName(artifact)}`,

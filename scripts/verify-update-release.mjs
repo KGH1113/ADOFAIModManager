@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { validateSignedVersion } from "./prepare-update-release.mjs";
 
 export function verifyManifest(manifest, release) {
   if (release.tagName !== `v${manifest.version}`) throw new Error("Release version mismatch");
   for (const [platform, update] of Object.entries(manifest.platforms)) {
+    validateSignedVersion(update.signature, manifest.version, platform);
     const url = new URL(update.url);
     const asset = release.assets.find((item) => item.name === url.pathname.split("/").at(-1));
     if (asset?.state !== "uploaded" || asset.size === 0) {

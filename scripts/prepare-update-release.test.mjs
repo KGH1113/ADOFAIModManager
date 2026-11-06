@@ -8,9 +8,14 @@ const files = [
   "win/manager.exe",
   "linux/manager.AppImage",
 ].flatMap((path) => [path, `${path}.sig`]);
+const signatureWithComment = (comment) =>
+  Buffer.from(
+    `untrusted comment: test fixture\nsignature\ntrusted comment: ${comment}\nglobal-signature\n`,
+  ).toString("base64");
+const signature = signatureWithComment("timestamp:1\tfile:manager\tversion:0.3.0");
 describe("update release manifest", () => {
   it("validates draft placeholder URLs and published URLs without accepting renamed assets", () => {
-    const manifest = createManifest("0.3.0", "v0.3.0", "owner/repo", files, () => "sig");
+    const manifest = createManifest("0.3.0", "v0.3.0", "owner/repo", files, () => signature);
     for (const isDraft of [true, false]) {
       const assets = Object.values(manifest.platforms).flatMap(({ url }) => {
         const name = new URL(url).pathname.split("/").at(-1);
@@ -36,30 +41,52 @@ describe("update release manifest", () => {
       "v0.3.0",
       "KGH1113/ADOFAIModManager",
       files,
-      () => "signature\n",
+      () => `${signature}\n`,
     );
     expect(Object.keys(manifest.platforms)).toHaveLength(3);
     expect(manifest.platforms["darwin-aarch64"]).toEqual({
-      signature: "signature",
+      signature,
       url: "https://github.com/KGH1113/ADOFAIModManager/releases/download/v0.3.0/ADOFAI.Mod.Manager.app.tar.gz",
     });
   });
   it("rejects partial releases, duplicate artifacts, empty signatures and mismatched tags", () => {
-    expect(() => createManifest("0.3.0", "v0.3.0", "a/b", files.slice(2), () => "sig")).toThrow();
+    expect(() =>
+      createManifest("0.3.0", "v0.3.0", "a/b", files.slice(2), () => signature),
+    ).toThrow();
     expect(() =>
       createManifest(
         "0.3.0",
         "v0.3.0",
         "a/b",
         [...files, "extra.exe", "extra.exe.sig"],
-        () => "sig",
+        () => signature,
       ),
     ).toThrow();
     expect(() => createManifest("0.3.0", "v0.3.0", "a/b", files, () => " ")).toThrow();
-    expect(() => createManifest("0.3.0", "v0.4.0", "a/b", files, () => "sig")).toThrow();
+    expect(() => createManifest("0.3.0", "v0.4.0", "a/b", files, () => signature)).toThrow();
     expect(() =>
-      createManifest("0.3.0-beta.1", "v0.3.0-beta.1", "a/b", files, () => "sig"),
+      createManifest("0.3.0-beta.1", "v0.3.0-beta.1", "a/b", files, () => signature),
     ).toThrow();
+  });
+  it("rejects signatures without the announced version in their trusted comment", () => {
+    for (const comment of [
+      "timestamp:1\tfile:manager.AppImage",
+      "timestamp:1\tfile:manager.AppImage\tversion:0.2.9",
+      "timestamp:1\tfile:version:0.3.0",
+    ]) {
+      expect(() =>
+        createManifest("0.3.0", "v0.3.0", "a/b", files, (path) =>
+          path.endsWith(".AppImage.sig") ? signatureWithComment(comment) : signature,
+        ),
+      ).toThrow("signed version for linux-x86_64");
+    }
+  });
+  it("rejects uploaded manifests whose signature lost its version metadata", () => {
+    const manifest = createManifest("0.3.0", "v0.3.0", "a/b", files, () => signature);
+    manifest.platforms["darwin-aarch64"].signature = signatureWithComment("timestamp:1");
+    expect(() => verifyManifest(manifest, { tagName: "v0.3.0", assets: [] })).toThrow(
+      "signed version for darwin-aarch64",
+    );
   });
   it("checks the repository version against the release tag", () => {
     const { version } = JSON.parse(readFileSync("package.json", "utf8"));
