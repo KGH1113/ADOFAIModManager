@@ -130,7 +130,8 @@ internal static class DoorstopInstallationChecks
         check(Read(mac).Injection == InjectionMethod.None, "macOS run.sh is not active when the .app is launched directly");
         File.WriteAllText(Path.Combine(mac.GameRoot, "ADanceOfFireAndIce.desktop"),
             "[Desktop Entry]\nType=Application\nExec=\"" + Path.Combine(mac.GameRoot, "run.sh") + "\"\n");
-        check(Read(mac).Injection == InjectionMethod.Doorstop, "macOS Doorstop is active when a launcher starts run.sh");
+        check(Read(mac).Injection == InjectionMethod.None && Read(mac).Warning is not null,
+            "A leftover macOS desktop launcher is not evidence that the app starts through Doorstop");
         File.Delete(Path.Combine(mac.GameRoot, "libdoorstop.dylib"));
         check(Read(mac).Injection == InjectionMethod.None, "macOS Doorstop without libdoorstop.dylib is not injecting");
 
@@ -139,7 +140,7 @@ internal static class DoorstopInstallationChecks
         var original = File.ReadAllBytes(repair.EntryAssemblyPath);
         WriteWindowsDoorstop(repair.GameRoot, "true", ummTarget, version: true);
         var log = new TestLog();
-        new DnlibUmmInstaller(log, new TestAppData(root)).InstallAsync(repair, PayloadDirectory(), forcePayload: false)
+        InstallerFor(root, log).InstallAsync(repair, PayloadDirectory(), forcePayload: false)
             .GetAwaiter().GetResult();
         var repaired = Read(repair);
         check(File.ReadAllBytes(repair.EntryAssemblyPath).AsSpan().SequenceEqual(original) &&
@@ -155,7 +156,7 @@ internal static class DoorstopInstallationChecks
         var patched = File.ReadAllBytes(again.EntryAssemblyPath);
         WriteWindowsDoorstop(again.GameRoot, "true", ummTarget, version: true);
         PlaceManager(again);
-        new DnlibUmmInstaller(new TestLog(), new TestAppData(root)).InstallAsync(again, PayloadDirectory(), forcePayload: true)
+        InstallerFor(root).InstallAsync(again, PayloadDirectory(), forcePayload: true)
             .GetAwaiter().GetResult();
         check(File.ReadAllBytes(again.EntryAssemblyPath).AsSpan().SequenceEqual(patched) &&
               Read(again).Injection == InjectionMethod.Both && Read(again).HookInstalled,
@@ -165,7 +166,7 @@ internal static class DoorstopInstallationChecks
         WriteAssembly(alongside.EntryAssemblyPath, hooked: false);
         WriteWindowsDoorstop(alongside.GameRoot, "true", @"BepInEx\core\BepInEx.Preloader.dll", version: true);
         var foreign = File.ReadAllBytes(Path.Combine(alongside.GameRoot, "winhttp.dll"));
-        new DnlibUmmInstaller(new TestLog(), new TestAppData(root)).InstallAsync(alongside, PayloadDirectory(), forcePayload: false)
+        InstallerFor(root).InstallAsync(alongside, PayloadDirectory(), forcePayload: false)
             .GetAwaiter().GetResult();
         check(Read(alongside).Injection == InjectionMethod.Assembly &&
               File.ReadAllBytes(Path.Combine(alongside.GameRoot, "winhttp.dll")).AsSpan().SequenceEqual(foreign),
@@ -174,122 +175,239 @@ internal static class DoorstopInstallationChecks
         var disabled = WindowsGame(Path.Combine(root, "doorstop-disabled-install"));
         WriteAssembly(disabled.EntryAssemblyPath, hooked: false);
         WriteWindowsDoorstop(disabled.GameRoot, "false", ummTarget, version: true);
-        new DnlibUmmInstaller(new TestLog(), new TestAppData(root)).InstallAsync(disabled, PayloadDirectory(), forcePayload: false)
+        InstallerFor(root).InstallAsync(disabled, PayloadDirectory(), forcePayload: false)
             .GetAwaiter().GetResult();
         check(Read(disabled).Injection == InjectionMethod.Assembly &&
               File.Exists(Path.Combine(disabled.GameRoot, "winhttp.dll")) &&
               File.ReadAllText(Path.Combine(disabled.GameRoot, "doorstop_config.ini")).Contains("enabled = false", StringComparison.Ordinal),
             "Install patches the assembly when UMM Doorstop is disabled");
 
-        var direct = LinuxGame(Path.Combine(root, "doorstop-linux-direct"));
-        WriteAssembly(direct.EntryAssemblyPath, hooked: false);
-        var directBefore = File.ReadAllBytes(direct.EntryAssemblyPath);
-        WriteUnixDoorstop(direct.GameRoot, "libdoorstop.so", "1", "ADanceOfFireAndIce_Data/Managed/UnityModManager/UnityModManager.dll");
-        new DnlibUmmInstaller(new TestLog(), new TestAppData(root)).InstallAsync(direct, PayloadDirectory(), forcePayload: false)
-            .GetAwaiter().GetResult();
-        var directStatus = Read(direct);
-        check(directStatus.Injection == InjectionMethod.Assembly && directStatus.HookInstalled &&
-              !File.ReadAllBytes(direct.EntryAssemblyPath).AsSpan().SequenceEqual(directBefore) &&
-              File.Exists(Path.Combine(direct.GameRoot, "run.sh")) &&
-              File.Exists(Path.Combine(direct.GameRoot, "libdoorstop.so")),
-            "Install still patches the assembly when Unix Doorstop is not the launch path");
-
-        var launchedRoot = Path.Combine(root, "steam-linux", "steamapps", "common", "ADanceOfFireAndIce");
-        var launched = LinuxGame(launchedRoot);
-        WriteAssembly(launched.EntryAssemblyPath, hooked: false);
-        var launchedBefore = File.ReadAllBytes(launched.EntryAssemblyPath);
-        WriteUnixDoorstop(launched.GameRoot, "libdoorstop.so", "1", "ADanceOfFireAndIce_Data/Managed/UnityModManager/UnityModManager.dll");
-        var steamClient = Path.Combine(root, "steam-linux");
-        WriteLaunchOptions(steamClient, """
-            "977950"
-            {
-                "LaunchOptions" "%command%"
-            }
-            "123"
-            {
-                "LaunchOptions" "./run.sh %command%"
-            }
-            """);
-        WithSteamClient(steamClient, () =>
-        {
-            check(Read(launched).Injection == InjectionMethod.None, "Another game's run.sh launch option does not activate Doorstop");
-            WriteLaunchOptions(steamClient, """
-                "977950"
-                {
-                    "LaunchOptions" "./run.sh %command%"
-                }
-                """);
-            check(Read(launched).Injection == InjectionMethod.Doorstop, "Steam LaunchOptions that run run.sh make Linux Doorstop active");
-            new DnlibUmmInstaller(new TestLog(), new TestAppData(root)).InstallAsync(launched, PayloadDirectory(), forcePayload: false)
-                .GetAwaiter().GetResult();
-            check(File.ReadAllBytes(launched.EntryAssemblyPath).AsSpan().SequenceEqual(launchedBefore) &&
-                  Read(launched).Injection == InjectionMethod.Doorstop && !Read(launched).HookInstalled,
-                "Install does not patch the assembly when Steam launches the game through run.sh");
-        });
-
-        var secondaryRoot = Path.Combine(root, "secondary-library");
-        var secondary = LinuxGame(Path.Combine(secondaryRoot, "steamapps", "common", "ADanceOfFireAndIce"));
-        WriteAssembly(secondary.EntryAssemblyPath, hooked: false);
-        var secondaryBefore = File.ReadAllBytes(secondary.EntryAssemblyPath);
-        WriteUnixDoorstop(secondary.GameRoot, "libdoorstop.so", "1", "ADanceOfFireAndIce_Data/Managed/UnityModManager/UnityModManager.dll");
-        WriteLaunchOptions(secondaryRoot, """
-            "977950"
-            {
-                "LaunchOptions" "./run.sh %command%"
-            }
-            """);
-        check(Read(secondary).Injection == InjectionMethod.None,
-            "LaunchOptions stored beside a secondary Steam library are not the client config");
-        var primary = Path.Combine(root, "primary-steam");
-        WriteLaunchOptions(primary, """
-            "977950"
-            {
-                "LaunchOptions" "./run.sh %command%"
-            }
-            """);
-        WithSteamClient(primary, () =>
-        {
-            check(Read(secondary).Injection == InjectionMethod.Doorstop,
-                "A secondary library uses LaunchOptions from the primary Steam install");
-            new DnlibUmmInstaller(new TestLog(), new TestAppData(root)).InstallAsync(secondary, PayloadDirectory(), forcePayload: true)
-                .GetAwaiter().GetResult();
-            check(File.ReadAllBytes(secondary.EntryAssemblyPath).AsSpan().SequenceEqual(secondaryBefore) &&
-                  !Read(secondary).HookInstalled,
-                "Install does not add an assembly hook when the primary Steam config launches run.sh");
-        });
-
-        var desktopGame = LinuxGame(Path.Combine(root, "doorstop-desktop-leftover"));
-        WriteAssembly(desktopGame.EntryAssemblyPath, hooked: false);
-        var desktopBefore = File.ReadAllBytes(desktopGame.EntryAssemblyPath);
-        WriteUnixDoorstop(desktopGame.GameRoot, "libdoorstop.so", "1", "ADanceOfFireAndIce_Data/Managed/UnityModManager/UnityModManager.dll");
-        File.WriteAllText(Path.Combine(desktopGame.GameRoot, "ADanceOfFireAndIce.desktop"),
-            "[Desktop Entry]\nType=Application\nExec=\"" + Path.Combine(desktopGame.GameRoot, "run.sh") + "\"\n");
-        var directClient = Path.Combine(root, "primary-steam-direct");
-        WriteLaunchOptions(directClient, """
-            "977950"
-            {
-                "LaunchOptions" "%command%"
-            }
-            """);
-        WithSteamClient(directClient, () =>
-        {
-            check(Read(desktopGame).Injection == InjectionMethod.None,
-                "A leftover .desktop run.sh launcher does not override Steam's %command%");
-            new DnlibUmmInstaller(new TestLog(), new TestAppData(root)).InstallAsync(desktopGame, PayloadDirectory(), forcePayload: false)
-                .GetAwaiter().GetResult();
-            var afterDesktop = Read(desktopGame);
-            check(afterDesktop.Injection == InjectionMethod.Assembly && afterDesktop.HookInstalled &&
-                  !File.ReadAllBytes(desktopGame.EntryAssemblyPath).AsSpan().SequenceEqual(desktopBefore),
-                "Install patches the assembly when Steam launches directly despite a .desktop file");
-        });
+        CheckUnixLaunches(root, check);
 
         var wrapped = LinuxGame(Path.Combine(root, "doorstop-linux-wrapper"));
         WriteAssembly(wrapped.EntryAssemblyPath, hooked: false);
         PlaceManager(wrapped);
         WriteUnixDoorstop(wrapped.GameRoot, "libdoorstop.so", "1", "ADanceOfFireAndIce_Data/Managed/UnityModManager/UnityModManager.dll");
-        File.WriteAllText(wrapped.AppPath, "#!/bin/sh\nexport LD_PRELOAD=\"libdoorstop.so\"\nexec ./ADanceOfFireAndIce.real \"$@\"\n");
-        check(Read(wrapped).Injection == InjectionMethod.Doorstop, "A game executable that preloads libdoorstop is an active Doorstop launch");
+        File.WriteAllText(wrapped.AppPath, "#!/bin/sh\nexec ./run.sh \"$@\"\n");
+        check(Read(wrapped).Injection == InjectionMethod.Doorstop,
+            "The selected game executable can launch its own configured Doorstop script");
+
+        var preloaded = LinuxGame(Path.Combine(root, "doorstop-linux-preload"));
+        PrepareUnixGame(preloaded);
+        WritePreloadWrapper(preloaded, enabled: null, target: null);
+        CheckUncertainInstall(InstallerFor(root), preloaded, check,
+            "Preloading libdoorstop without verified enabled and target exports blocks a second injector");
+        WritePreloadWrapper(preloaded, "1", linuxTarget);
+        check(Read(preloaded).Injection == InjectionMethod.Doorstop,
+            "A selected executable with complete literal Doorstop environment starts UMM");
+        WritePreloadWrapper(preloaded, "0", linuxTarget);
+        check(Read(preloaded).Injection == InjectionMethod.None,
+            "A disabled executable preload does not activate the UMM target from a separate run.sh");
+        WritePreloadWrapper(preloaded, "1", "BepInEx/core/BepInEx.Preloader.dll");
+        check(Read(preloaded).Injection == InjectionMethod.None,
+            "A preload wrapper targeting BepInEx does not activate UMM's separate run.sh config");
+        WritePreloadWrapper(preloaded, "1", linuxTarget);
+        File.WriteAllText(preloaded.AppPath, File.ReadAllText(preloaded.AppPath).Replace(
+            "export DOORSTOP_ENABLED=\"1\"\n",
+            "export DOORSTOP_ENABLED=\"1\"; export DOORSTOP_ENABLED=\"0\"\n", StringComparison.Ordinal));
+        CheckUncertainInstall(InstallerFor(root), preloaded, check,
+            "A semicolon assignment suffix is not mistaken for a verified enabled preload");
     }
+
+    private static void CheckUnixLaunches(string root, Action<bool, string> check)
+    {
+        var previousClient = Environment.GetEnvironmentVariable("STEAM_COMPAT_CLIENT_INSTALL_PATH");
+        var client = Path.Combine(root, "steam client fixture");
+        var game = LinuxGame(Path.Combine(client, "steamapps", "common", "ADanceOfFireAndIce"));
+        PrepareUnixGame(game);
+        WriteSteamLibraries(client, client);
+        WriteSteamManifest(client, game);
+        SelectSteamUser(client, 1);
+        var installer = InstallerFor(root, steamClientRoots: [client]);
+
+        WriteLaunchOptions(client, "\"977950\" { \"LastPlayed\" \"123\" }");
+        File.WriteAllText(Path.Combine(game.GameRoot, "ADanceOfFireAndIce.desktop"),
+            "[Desktop Entry]\nType=Application\nExec=\"" + Path.Combine(game.GameRoot, "run.sh") + "\"\n");
+        var missingOptions = installer.ReadStatus(game);
+        check(missingOptions.Injection == InjectionMethod.None &&
+              !DoorstopProbe.Inspect(game, [client]).NeedsLaunchConfirmation,
+            "Missing Steam LaunchOptions use the game binary despite a leftover desktop launcher");
+        var directBefore = File.ReadAllBytes(game.EntryAssemblyPath);
+        installer.InstallAsync(game, PayloadDirectory(), forcePayload: false).GetAwaiter().GetResult();
+        check(installer.ReadStatus(game).Injection == InjectionMethod.Assembly &&
+              !File.ReadAllBytes(game.EntryAssemblyPath).AsSpan().SequenceEqual(directBefore),
+            "Install patches the assembly when default Steam launch options bypass a leftover desktop file");
+        WriteAssembly(game.EntryAssemblyPath, hooked: false);
+
+        SetLaunchOptions(client, "");
+        check(installer.ReadStatus(game).Injection == InjectionMethod.None,
+            "Empty Steam LaunchOptions also use the game binary");
+        WriteLaunchOptions(client, "\"123\" { \"LaunchOptions\" \"./run.sh %command%\" }");
+        check(installer.ReadStatus(game).Injection == InjectionMethod.None,
+            "Another game's launch options do not change ADOFAI's default direct launch");
+
+        SetLaunchOptions(client, "./run.sh %command%");
+        check(installer.ReadStatus(game).Injection == InjectionMethod.Doorstop,
+            "A manifest-backed Steam game uses its own relative run.sh launch option");
+        var launchedBefore = File.ReadAllBytes(game.EntryAssemblyPath);
+        installer.InstallAsync(game, PayloadDirectory(), forcePayload: false).GetAwaiter().GetResult();
+        check(installer.ReadStatus(game).Injection == InjectionMethod.Doorstop &&
+              !installer.ReadStatus(game).HookInstalled &&
+              File.ReadAllBytes(game.EntryAssemblyPath).AsSpan().SequenceEqual(launchedBefore),
+            "Install preserves the assembly when Steam starts this game's Doorstop script");
+        SetLaunchOptions(client, "bash \"" + Path.Combine(game.GameRoot, "run.sh") + "\" %command%");
+        check(installer.ReadStatus(game).Injection == InjectionMethod.Doorstop,
+            "A shell wrapper can launch the game's quoted absolute run.sh path containing spaces");
+
+        SetLaunchOptions(client, "./run.sh --doorstop-enabled false %command%");
+        CheckUncertainInstall(installer, game, check,
+            "A run.sh enabled override is not mistaken for its configured active UMM launch");
+        SetLaunchOptions(client,
+            "./run.sh --doorstop_target_assembly BepInEx/core/BepInEx.Preloader.dll %command%");
+        CheckUncertainInstall(installer, game, check,
+            "A legacy run.sh target override does not inherit the file's UMM target");
+        WriteUnixDoorstop(game.GameRoot, "libdoorstop.so", "0",
+            "ADanceOfFireAndIce_Data/Managed/UnityModManager/UnityModManager.dll");
+        SetLaunchOptions(client, "./run.sh --doorstop-enabled true %command%");
+        CheckUncertainInstall(installer, game, check,
+            "A launch-time enabled override blocks assembly installation even when run.sh defaults to disabled");
+        WriteUnixDoorstop(game.GameRoot, "libdoorstop.so", "1",
+            "ADanceOfFireAndIce_Data/Managed/UnityModManager/UnityModManager.dll");
+        SetLaunchOptions(client, "./run.sh %command%");
+
+        SetLaunchOptions(client, "\"" + Path.Combine(root, "another-game", "run.sh") + "\" %command%");
+        CheckUncertainInstall(installer, game, check,
+            "An unrelated absolute run.sh does not prove this game's launch path or permit a second injector");
+        SetLaunchOptions(client, "gamemoderun %command% --note=run.sh");
+        CheckUncertainInstall(installer, game, check,
+            "A run.sh substring in an unknown wrapper does not activate Doorstop or permit assembly installation");
+
+        SetLaunchOptions(client, "%command%", account: 1);
+        SetLaunchOptions(client, "./run.sh %command%", account: 2);
+        SelectSteamUser(client, 1, 2);
+        check(installer.ReadStatus(game).Injection == InjectionMethod.None,
+            "The current Steam account's direct launch wins over a previous account's Doorstop setting");
+        SetLaunchOptions(client, "./run.sh %command%", account: 1);
+        SetLaunchOptions(client, "%command%", account: 2);
+        check(installer.ReadStatus(game).Injection == InjectionMethod.Doorstop,
+            "The current Steam account's Doorstop launch is not hidden by a previous direct setting");
+        File.Delete(Path.Combine(client, "config", "loginusers.vdf"));
+        CheckUncertainInstall(installer, game, check,
+            "Multiple Steam accounts without a selected current account do not guess a launch method");
+        SelectSteamUser(client, 1, 2);
+
+        var secondaryLibrary = Path.Combine(root, "registered secondary library");
+        var secondary = LinuxGame(Path.Combine(secondaryLibrary, "steamapps", "common", "ADanceOfFireAndIce"));
+        PrepareUnixGame(secondary);
+        WriteSteamManifest(secondaryLibrary, secondary);
+        WriteSteamLibraries(client, client, secondaryLibrary);
+        SetLaunchOptions(secondaryLibrary, "%command%");
+        check(installer.ReadStatus(secondary).Injection == InjectionMethod.Doorstop,
+            "A registered secondary library reads the current account's options from the primary Steam client");
+        var secondaryBefore = File.ReadAllBytes(secondary.EntryAssemblyPath);
+        installer.InstallAsync(secondary, PayloadDirectory(), forcePayload: true).GetAwaiter().GetResult();
+        check(!installer.ReadStatus(secondary).HookInstalled &&
+              File.ReadAllBytes(secondary.EntryAssemblyPath).AsSpan().SequenceEqual(secondaryBefore),
+            "Repair of a registered secondary library does not add a second injector");
+
+        var unregisteredLibrary = Path.Combine(root, "unregistered library");
+        var unregistered = LinuxGame(Path.Combine(unregisteredLibrary, "steamapps", "common", "ADanceOfFireAndIce"));
+        PrepareUnixGame(unregistered);
+        WriteSteamManifest(unregisteredLibrary, unregistered);
+        CheckUncertainInstall(installer, unregistered, check,
+            "A manifest in an unregistered library does not inherit another installation's Steam options");
+
+        var separate = LinuxGame(Path.Combine(root, "manually selected game"));
+        PrepareUnixGame(separate);
+        File.WriteAllText(Path.Combine(separate.GameRoot, "unused.desktop"),
+            "[Desktop Entry]\nType=Application\nExec=\"" + Path.Combine(separate.GameRoot, "run.sh") + "\"\n");
+        CheckUncertainInstall(installer, separate, check,
+            "A separate game copy does not inherit the Steam client's active Doorstop setting");
+        SetLaunchOptions(client, "%command%");
+        CheckUncertainInstall(installer, separate, check,
+            "A separate game copy does not inherit the Steam client's direct launch setting");
+        var withoutClients = InstallerFor(root);
+        CheckUncertainInstall(withoutClients, game, check,
+            "Explicitly empty Steam roots ignore host settings and require confirmation of an enabled Unix loader");
+        withoutClients.RemoveHook(separate);
+        check(!File.Exists(Path.Combine(separate.GameRoot, "run.sh")) &&
+              !File.Exists(Path.Combine(separate.GameRoot, "libdoorstop.so")) &&
+              Backups(separate.GameRoot, "run.sh").Any(),
+            "An uncertain UMM Doorstop deployment can still be safely removed");
+
+        var disabled = LinuxGame(Path.Combine(root, "disabled Unix Doorstop"));
+        PrepareUnixGame(disabled);
+        WriteUnixDoorstop(disabled.GameRoot, "libdoorstop.so", "0",
+            "ADanceOfFireAndIce_Data/Managed/UnityModManager/UnityModManager.dll");
+        withoutClients.InstallAsync(disabled, PayloadDirectory(), forcePayload: false).GetAwaiter().GetResult();
+        check(withoutClients.ReadStatus(disabled).Injection == InjectionMethod.Assembly,
+            "A disabled Unix Doorstop does not require launch confirmation before assembly installation");
+
+        var mac = MacGame(Path.Combine(client, "steamapps", "common", "ADOFAI mac with spaces"));
+        WriteAssembly(mac.EntryAssemblyPath, hooked: false);
+        PlaceManager(mac);
+        WriteUnixDoorstop(mac.GameRoot, "libdoorstop.dylib", "1",
+            "ADanceOfFireAndIce.app/Contents/Resources/Data/Managed/UnityModManager/UnityModManager.dll");
+        WriteSteamManifest(client, mac);
+        SetLaunchOptions(client, "bash \"" + Path.Combine(mac.GameRoot, "run.sh") + "\" %command%");
+        check(installer.ReadStatus(mac).Injection == InjectionMethod.Doorstop,
+            "macOS Doorstop handles a quoted Steam launcher and dylib path containing spaces");
+        check(Environment.GetEnvironmentVariable("STEAM_COMPAT_CLIENT_INSTALL_PATH") == previousClient,
+            "Doorstop checks leave the host's Steam environment unchanged");
+    }
+
+    private static void CheckUncertainInstall(DnlibUmmInstaller installer, GameInstallation game,
+        Action<bool, string> check, string description)
+    {
+        var beforeCore = File.ReadAllBytes(game.EntryAssemblyPath);
+        var manager = Path.Combine(game.ManagerPath, "UnityModManager.dll");
+        var beforeManager = File.ReadAllBytes(manager);
+        var config = Path.Combine(game.ManagerPath, "Config.xml");
+        var hadConfig = File.Exists(config);
+        var beforeConfig = hadConfig ? File.ReadAllBytes(config) : [];
+        var hadBackup = File.Exists(game.OriginalBackupPath);
+        var beforeBackup = hadBackup ? File.ReadAllBytes(game.OriginalBackupPath) : [];
+        var rejected = false;
+        try
+        {
+            installer.InstallAsync(game, PayloadDirectory(), forcePayload: true).GetAwaiter().GetResult();
+        }
+        catch (InvalidOperationException error) when (error.Message == DoorstopProbe.UnverifiedLaunchWarning)
+        {
+            rejected = true;
+        }
+        var status = installer.ReadStatus(game);
+        check(status.Injection == InjectionMethod.None &&
+              status.Warning?.Contains(DoorstopProbe.UnverifiedLaunchWarning, StringComparison.Ordinal) == true && rejected &&
+              File.ReadAllBytes(game.EntryAssemblyPath).AsSpan().SequenceEqual(beforeCore) &&
+              File.ReadAllBytes(manager).AsSpan().SequenceEqual(beforeManager) &&
+              File.Exists(config) == hadConfig && (!hadConfig || File.ReadAllBytes(config).AsSpan().SequenceEqual(beforeConfig)) &&
+              File.Exists(game.OriginalBackupPath) == hadBackup &&
+              (!hadBackup || File.ReadAllBytes(game.OriginalBackupPath).AsSpan().SequenceEqual(beforeBackup)), description);
+    }
+
+    private static void PrepareUnixGame(GameInstallation game)
+    {
+        WriteAssembly(game.EntryAssemblyPath, hooked: false);
+        WriteNativeGame(game.AppPath);
+        PlaceManager(game);
+        WriteUnixDoorstop(game.GameRoot, "libdoorstop.so", "1",
+            "ADanceOfFireAndIce_Data/Managed/UnityModManager/UnityModManager.dll");
+    }
+
+    private static void WritePreloadWrapper(GameInstallation game, string? enabled, string? target)
+    {
+        WriteNativeGame(Path.Combine(game.GameRoot, "ADanceOfFireAndIce.real"));
+        var text = "#!/bin/sh\nexport LD_PRELOAD=\"./libdoorstop.so\"\n";
+        if (enabled is not null)
+            text += "export DOORSTOP_ENABLED=\"" + enabled + "\"\n";
+        if (target is not null)
+            text += "export DOORSTOP_TARGET_ASSEMBLY=\"" + target + "\"\n";
+        File.WriteAllText(game.AppPath, text + "exec ./ADanceOfFireAndIce.real \"$@\"\n");
+    }
+
+    private static void WriteNativeGame(string path) =>
+        File.WriteAllBytes(path, [0x7f, (byte)'E', (byte)'L', (byte)'F']);
 
     private static void CheckQuotedIni(string root, string target, char quote, Action<bool, string> check)
     {
@@ -333,24 +451,41 @@ internal static class DoorstopInstallationChecks
             "A Proton Z: target resolves through the game's dosdevices mapping");
     }
 
-    private static void WithSteamClient(string steamRoot, Action body)
+    private static void WriteSteamLibraries(string steamRoot, params string[] libraries)
     {
-        const string variable = "STEAM_COMPAT_CLIENT_INSTALL_PATH";
-        var previous = Environment.GetEnvironmentVariable(variable);
-        Environment.SetEnvironmentVariable(variable, steamRoot);
-        try
-        {
-            body();
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(variable, previous);
-        }
+        var steamapps = Path.Combine(steamRoot, "steamapps");
+        Directory.CreateDirectory(steamapps);
+        var entries = libraries.Select((path, index) => $"\"{index}\" {{ \"path\" {VdfString(path)} }}");
+        File.WriteAllText(Path.Combine(steamapps, "libraryfolders.vdf"),
+            "\"libraryfolders\" { " + string.Join("\n", entries) + " }");
     }
 
-    private static void WriteLaunchOptions(string steamRoot, string apps)
+    private static void WriteSteamManifest(string library, GameInstallation game)
     {
-        var configDir = Path.Combine(steamRoot, "userdata", "1", "config");
+        var steamapps = Path.Combine(library, "steamapps");
+        Directory.CreateDirectory(steamapps);
+        File.WriteAllText(Path.Combine(steamapps, "appmanifest_977950.acf"),
+            "\"AppState\" { \"appid\" \"977950\" \"installdir\" " + VdfString(Path.GetFileName(game.GameRoot)) + " }");
+    }
+
+    private static void SelectSteamUser(string steamRoot, uint current, params uint[] previous)
+    {
+        var config = Path.Combine(steamRoot, "config");
+        Directory.CreateDirectory(config);
+        var users = previous.Prepend(current).Select(account =>
+            $"\"{76561197960265728UL + account}\" {{ \"MostRecent\" \"{(account == current ? 1 : 0)}\" }}");
+        File.WriteAllText(Path.Combine(config, "loginusers.vdf"), "\"users\" { " + string.Join("\n", users) + " }");
+    }
+
+    private static void SetLaunchOptions(string steamRoot, string options, uint account = 1) =>
+        WriteLaunchOptions(steamRoot, "\"977950\" { \"LaunchOptions\" " + VdfString(options) + " }", account);
+
+    private static string VdfString(string value) =>
+        "\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
+
+    private static void WriteLaunchOptions(string steamRoot, string apps, uint account = 1)
+    {
+        var configDir = Path.Combine(steamRoot, "userdata", account.ToString(), "config");
         Directory.CreateDirectory(configDir);
         File.WriteAllText(Path.Combine(configDir, "localconfig.vdf"),
             "\"UserLocalConfigStore\"\n{\n\"Software\"\n{\n\"Valve\"\n{\n\"Steam\"\n{\n\"apps\"\n{\n" + apps + "\n}\n}\n}\n}\n}\n");
@@ -358,7 +493,8 @@ internal static class DoorstopInstallationChecks
 
     private static InstallStatus Read(GameInstallation layout) => InstallerFor(layout.GameRoot).ReadStatus(layout);
 
-    private static DnlibUmmInstaller InstallerFor(string root) => new(new TestLog(), new TestAppData(root));
+    private static DnlibUmmInstaller InstallerFor(string root, TestLog? log = null,
+        IReadOnlyList<string>? steamClientRoots = null) => new(log ?? new TestLog(), new TestAppData(root), steamClientRoots ?? []);
 
     private static bool Readable(InstallStatus status) =>
         status.Warning is null || !status.Warning.StartsWith("Could not inspect hook", StringComparison.Ordinal);

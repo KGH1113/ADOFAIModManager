@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using System.Text;
 using NativeUmm.Domain.Games;
 
@@ -13,27 +12,35 @@ namespace NativeUmm.Infrastructure.Installation;
 /// Linux ships run.sh and libdoorstop.so. macOS ships run.sh and libdoorstop.dylib.
 /// run.sh assigns enabled and target_assembly, then exports DOORSTOP_ENABLED and
 /// DOORSTOP_TARGET_ASSEMBLY. The Unix loader enables Doorstop only when that value is "1"
-/// (src/nix/config.c). Those files do not inject unless Steam's LaunchOptions for this
-/// app actually run run.sh, or there is no Steam launch option and a desktop file or
-/// preload wrapper is what starts the game. A leftover .desktop does not override
-/// LaunchOptions of plain %command%. Userdata is read from the primary Steam client,
-/// not from the library folder that contains the game.
+/// (src/nix/config.c). Only this installation's Steam launch settings or its actual
+/// executable wrapper establish an active Unix deployment. A desktop shortcut is
+/// not evidence that it is used. Unverified launch paths must be confirmed before
+/// another injection method is installed.
 /// Relative targets resolve from the game root. On a Unix host, a Windows drive path such
 /// as Z:\... is resolved through the game's Proton dosdevices link, or Z: → / when Wine's
 /// default root mapping is the only one available.
 /// </summary>
 internal static class DoorstopProbe
 {
-    internal readonly record struct Inspection(bool Active, bool OwnedByUmm, IReadOnlyList<string> Files)
+    internal const string UnverifiedLaunchWarning =
+        "UnityDoorstop is configured for UnityModManager, but this game's Unix launch path could not be verified. " +
+        "Use this game's ./run.sh %command% without Doorstop command-line overrides in Steam, " +
+        "or disable the unverified Doorstop launcher before installing the assembly hook.";
+
+    internal readonly record struct Inspection(
+        bool Active,
+        bool OwnedByUmm,
+        IReadOnlyList<string> Files,
+        bool NeedsLaunchConfirmation = false)
     {
         public static Inspection None { get; } = new(false, false, []);
     }
 
-    public static Inspection Inspect(GameInstallation layout)
+    public static Inspection Inspect(GameInstallation layout, IReadOnlyList<string>? steamClientRoots = null)
     {
         try
         {
-            return InspectCore(layout);
+            return InspectCore(layout, steamClientRoots);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
@@ -41,7 +48,7 @@ internal static class DoorstopProbe
         }
     }
 
-    private static Inspection InspectCore(GameInstallation layout)
+    private static Inspection InspectCore(GameInstallation layout, IReadOnlyList<string>? steamClientRoots)
     {
         var runtime = RuntimeOf(layout);
         var configPath = Path.Combine(layout.GameRoot, runtime == GameRuntime.Windows ? "doorstop_config.ini" : "run.sh");
@@ -64,10 +71,16 @@ internal static class DoorstopProbe
         if (File.Exists(version))
             files.Add(version);
 
-        // winhttp.dll injects every time the Windows executable starts. On Linux and
-        // macOS the library is only preloaded when a launcher actually runs run.sh.
-        var launched = runtime == GameRuntime.Windows || UnixLaunchUsesDoorstop(layout, runtime);
-        return new Inspection(enabled && File.Exists(library) && launched, OwnedByUmm: true, files);
+        var launch = runtime == GameRuntime.Windows
+            ? DoorstopLaunch.Doorstop
+            : UnixLaunch(layout, runtime, steamClientRoots);
+        var configured = enabled && File.Exists(library);
+        return new Inspection(
+            configured && launch == DoorstopLaunch.Doorstop,
+            OwnedByUmm: true,
+            files,
+            NeedsLaunchConfirmation: File.Exists(library) &&
+                ((enabled && launch == DoorstopLaunch.Unknown) || launch == DoorstopLaunch.Overridden));
     }
 
     internal static GameRuntime RuntimeOf(GameInstallation layout)
@@ -268,256 +281,149 @@ internal static class DoorstopProbe
         return Directory.Exists(path) ? Path.GetFullPath(path) : null;
     }
 
-    private enum SteamLaunch
+    private static DoorstopLaunch UnixLaunch(
+        GameInstallation layout, GameRuntime runtime, IReadOnlyList<string>? steamClientRoots)
     {
-        Unknown,
-        Direct,
-        Doorstop
+        var steam = SteamLaunchProbe.Read(layout, steamClientRoots);
+        if (steam is DoorstopLaunch.Doorstop or DoorstopLaunch.Overridden)
+            return steam;
+
+        // Only inspect the executable the selected layout actually starts.
+        // Arbitrary desktop shortcuts and unrelated Steam installs do not select it.
+        var executable = ExecutableLaunch(layout, runtime);
+        if (executable == DoorstopLaunch.Overridden)
+            return DoorstopLaunch.Overridden;
+        if (executable == DoorstopLaunch.Doorstop)
+            return DoorstopLaunch.Doorstop;
+        // An unverified external launcher can change how the selected executable is
+        // started. Its apparent direct path must not override uncertain metadata.
+        return steam == DoorstopLaunch.Unknown ? steam : executable ?? steam;
     }
 
-    private static bool UnixLaunchUsesDoorstop(GameInstallation layout, GameRuntime runtime)
-    {
-        switch (ReadSteamLaunch())
-        {
-            case SteamLaunch.Doorstop:
-                return true;
-            case SteamLaunch.Direct:
-                // %command% starts the game binary. A leftover .desktop is not that process.
-                return ExecutablePreloadsDoorstop(layout, runtime);
-            default:
-                if (DesktopFileLaunches(layout.GameRoot))
-                    return true;
-                return ExecutablePreloadsDoorstop(layout, runtime);
-        }
-    }
-
-    private static SteamLaunch ReadSteamLaunch()
-    {
-        try
-        {
-            var sawOptions = false;
-            foreach (var root in PrimarySteamRoots())
-            {
-                var userdata = Path.Combine(root, "userdata");
-                if (!Directory.Exists(userdata))
-                    continue;
-                foreach (var user in Directory.EnumerateDirectories(userdata))
-                {
-                    var config = Path.Combine(user, "config", "localconfig.vdf");
-                    if (!File.Exists(config))
-                        continue;
-                    var options = AppLaunchOptions(File.ReadAllText(config));
-                    if (options is null)
-                        continue;
-                    if (options.Contains("run.sh", StringComparison.Ordinal))
-                        return SteamLaunch.Doorstop;
-                    sawOptions = true;
-                }
-            }
-            return sawOptions ? SteamLaunch.Direct : SteamLaunch.Unknown;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return SteamLaunch.Unknown;
-        }
-    }
-
-    private static IEnumerable<string> PrimarySteamRoots()
-    {
-        var roots = new List<string>();
-        var seen = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-        void Add(string? path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-                return;
-            try
-            {
-                var full = Path.GetFullPath(path);
-                if (Directory.Exists(full) && seen.Add(full))
-                    roots.Add(full);
-            }
-            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-            {
-            }
-        }
-
-        // Set by Proton to the Steam client install, which owns userdata even for other libraries.
-        Add(Environment.GetEnvironmentVariable("STEAM_COMPAT_CLIENT_INSTALL_PATH"));
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (!string.IsNullOrEmpty(home))
-        {
-            Add(Path.Combine(home, ".steam", "root"));
-            Add(Path.Combine(home, ".steam", "steam"));
-            Add(Path.Combine(home, ".local", "share", "Steam"));
-            Add(Path.Combine(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam"));
-            Add(Path.Combine(home, "Library", "Application Support", "Steam"));
-        }
-        if (OperatingSystem.IsWindows())
-            AddWindowsSteamRoots(Add);
-        return roots;
-    }
-
-    [SupportedOSPlatform("windows")]
-    private static void AddWindowsSteamRoots(Action<string?> add)
-    {
-        AddRegistry(@"Software\Valve\Steam", "SteamPath", Microsoft.Win32.Registry.CurrentUser, add);
-        AddRegistry(@"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath", Microsoft.Win32.Registry.LocalMachine, add);
-        AddRegistry(@"SOFTWARE\Valve\Steam", "InstallPath", Microsoft.Win32.Registry.LocalMachine, add);
-        var programs = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-        if (!string.IsNullOrEmpty(programs))
-            add(Path.Combine(programs, "Steam"));
-    }
-
-    private static void AddRegistry(string keyPath, string valueName, Microsoft.Win32.RegistryKey hive, Action<string?> add)
-    {
-        if (!OperatingSystem.IsWindows())
-            return;
-        try
-        {
-            using var key = hive.OpenSubKey(keyPath);
-            if (key?.GetValue(valueName) is string value)
-                add(value);
-        }
-        catch (Exception)
-        {
-            // Registry discovery is optional; the well-known install paths remain.
-        }
-    }
-
-    private static string? AppLaunchOptions(string text)
-    {
-        var tokens = VdfTokens(text).ToArray();
-        var index = 0;
-        string? found = null;
-        bool Read(string prefix)
-        {
-            while (index < tokens.Length)
-            {
-                var key = tokens[index++];
-                if (key == "}")
-                    return true;
-                if (key == "{" || index >= tokens.Length)
-                    return false;
-                var name = UnquoteVdf(key);
-                var value = tokens[index++];
-                if (value == "{")
-                {
-                    if (!Read(prefix + name + "/"))
-                        return false;
-                }
-                else if (value != "}" &&
-                         name.Equals("LaunchOptions", StringComparison.OrdinalIgnoreCase) &&
-                         prefix.EndsWith("apps/977950/", StringComparison.OrdinalIgnoreCase))
-                {
-                    found = UnquoteVdf(value);
-                }
-            }
-            return true;
-        }
-        Read("");
-        return found;
-    }
-
-    private static IEnumerable<string> VdfTokens(string text)
-    {
-        var index = 0;
-        while (index < text.Length)
-        {
-            var current = text[index];
-            if (char.IsWhiteSpace(current))
-            {
-                index++;
-                continue;
-            }
-            if (current is '{' or '}')
-            {
-                yield return current.ToString();
-                index++;
-                continue;
-            }
-            if (current != '"')
-            {
-                index++;
-                continue;
-            }
-            var start = index++;
-            while (index < text.Length)
-            {
-                if (text[index] == '\\')
-                {
-                    index = Math.Min(text.Length, index + 2);
-                    continue;
-                }
-                if (text[index] == '"')
-                {
-                    index++;
-                    break;
-                }
-                index++;
-            }
-            yield return text[start..index];
-        }
-    }
-
-    private static string UnquoteVdf(string token)
-    {
-        if (token.Length < 2 || token[0] != '"' || token[^1] != '"')
-            return token;
-        return token[1..^1].Replace("\\\"", "\"", StringComparison.Ordinal).Replace("\\\\", "\\", StringComparison.Ordinal);
-    }
-
-    private static bool DesktopFileLaunches(string gameRoot)
-    {
-        IEnumerable<string> files;
-        try
-        {
-            files = Directory.EnumerateFiles(gameRoot, "*.desktop");
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return false;
-        }
-        foreach (var file in files)
-        {
-            try
-            {
-                foreach (var raw in File.ReadLines(file))
-                {
-                    var line = raw.Trim();
-                    if (line.StartsWith("Exec=", StringComparison.OrdinalIgnoreCase) &&
-                        line.Contains("run.sh", StringComparison.Ordinal))
-                        return true;
-                }
-            }
-            catch (IOException)
-            {
-            }
-        }
-        return false;
-    }
-
-    private static bool ExecutablePreloadsDoorstop(GameInstallation layout, GameRuntime runtime)
+    private static DoorstopLaunch? ExecutableLaunch(GameInstallation layout, GameRuntime runtime)
     {
         if (Directory.Exists(layout.AppPath) || !File.Exists(layout.AppPath))
-            return false;
+            return null;
         try
         {
             var info = new FileInfo(layout.AppPath);
             if (info.Length is < 2 or > 256 * 1024)
-                return false;
+                return null;
             using var stream = File.OpenRead(layout.AppPath);
             Span<byte> magic = stackalloc byte[2];
             if (stream.Read(magic) != 2 || magic[0] != (byte)'#' || magic[1] != (byte)'!')
-                return false;
-            var text = File.ReadAllText(layout.AppPath, Encoding.UTF8);
-            var preload = runtime == GameRuntime.Mac ? "DYLD_INSERT_LIBRARIES" : "LD_PRELOAD";
-            return text.Contains(preload, StringComparison.Ordinal) &&
-                   text.Contains(LibraryName(runtime), StringComparison.Ordinal);
+                return null;
+
+            var preloadName = runtime == GameRuntime.Mac ? "DYLD_INSERT_LIBRARIES" : "LD_PRELOAD";
+            var names = new[] { preloadName, "DOORSTOP_ENABLED", "DOORSTOP_TARGET_ASSEMBLY" };
+            var environment = new Dictionary<string, (string Value, bool Exported)>(StringComparer.Ordinal);
+            foreach (var raw in File.ReadLines(layout.AppPath, Encoding.UTF8).Skip(1))
+            {
+                var line = raw.Trim();
+                if (line.Length == 0 || line[0] == '#')
+                    continue;
+                var assignment = false;
+                foreach (var name in names)
+                {
+                    if (TryAssignment(line, name, out var value))
+                    {
+                        if (!StandaloneWrapperAssignment(line, name))
+                            return DoorstopLaunch.Unknown;
+                        var exported = line.StartsWith("export ", StringComparison.Ordinal) ||
+                            (environment.TryGetValue(name, out var previous) && previous.Exported);
+                        environment[name] = (value, exported);
+                        assignment = true;
+                        break;
+                    }
+                    if (line == "export " + name)
+                    {
+                        if (!environment.TryGetValue(name, out var previous))
+                            return DoorstopLaunch.Unknown;
+                        environment[name] = (previous.Value, true);
+                        assignment = true;
+                        break;
+                    }
+                    if (line == "unset " + name)
+                    {
+                        environment.Remove(name);
+                        assignment = true;
+                        break;
+                    }
+                }
+                if (assignment)
+                    continue;
+                if (line.StartsWith("exec ", StringComparison.Ordinal))
+                {
+                    var command = SteamLaunchProbe.ReadCommand(line["exec ".Length..], layout.GameRoot);
+                    if (command != DoorstopLaunch.Direct)
+                        return command;
+                    if (!environment.TryGetValue(preloadName, out var preload) || !preload.Exported)
+                        return DoorstopLaunch.Direct;
+                    if (!PreloadsOwnLibrary(preload.Value, layout.GameRoot, runtime))
+                        return DoorstopLaunch.Direct;
+                    if (!environment.TryGetValue("DOORSTOP_ENABLED", out var enabled) || !enabled.Exported)
+                        return DoorstopLaunch.Unknown;
+                    if (enabled.Value != "1")
+                        return DoorstopLaunch.Direct;
+                    if (!environment.TryGetValue("DOORSTOP_TARGET_ASSEMBLY", out var target) || !target.Exported)
+                        return DoorstopLaunch.Unknown;
+                    var resolved = Resolve(layout, runtime, target.Value);
+                    var expected = Path.GetFullPath(Path.Combine(layout.ManagerPath, "UnityModManager.dll"));
+                    return resolved is not null && SamePath(resolved, expected, runtime)
+                        ? DoorstopLaunch.Doorstop
+                        : DoorstopLaunch.Direct;
+                }
+
+                // Do not infer shell control flow, substitutions, or side effects.
+                return DoorstopLaunch.Unknown;
+            }
+            return DoorstopLaunch.Unknown;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
-            return false;
+            return DoorstopLaunch.Unknown;
         }
+    }
+
+    private static bool StandaloneWrapperAssignment(string line, string name)
+    {
+        var statement = line.StartsWith("export ", StringComparison.Ordinal)
+            ? line["export ".Length..].TrimStart()
+            : line;
+        if (!statement.StartsWith(name + "=", StringComparison.Ordinal))
+            return false;
+        var raw = line[(line.IndexOf('=') + 1)..].TrimStart();
+        if (raw.IndexOfAny(['$', (char)96, '\\']) >= 0)
+            return false;
+        if (raw.Length == 0)
+            return true;
+
+        int end;
+        if (raw[0] is '"' or '\'')
+        {
+            end = raw.IndexOf(raw[0], 1);
+            if (end < 0)
+                return false;
+            end++;
+        }
+        else
+        {
+            end = raw.IndexOfAny([' ', '\t']);
+            if (end < 0)
+                end = raw.Length;
+            if (raw[..end].IndexOfAny([';', '&', '|', '<', '>', '(', ')', '#', '"', '\'']) >= 0)
+                return false;
+        }
+        var suffix = raw[end..].TrimStart();
+        return suffix.Length == 0 || suffix[0] == '#';
+    }
+
+    private static bool PreloadsOwnLibrary(string value, string gameRoot, GameRuntime runtime)
+    {
+        var expected = Path.GetFullPath(Path.Combine(gameRoot, LibraryName(runtime)));
+        char[] separators = runtime == GameRuntime.Mac ? [':'] : [':', ' ', '\t'];
+        return value.Split(separators, StringSplitOptions.RemoveEmptyEntries)
+            .Any(path => SamePath(Path.GetFullPath(path, gameRoot), expected, runtime));
     }
 
     private static string? SteamDirectory(string gameRoot, string name)

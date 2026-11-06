@@ -12,13 +12,20 @@ using NativeUmm.Domain.Installation;
 
 namespace NativeUmm.Infrastructure.Installation;
 
-internal sealed class Installer(GameInstallation layout, IOperationLog log, IAppDataPaths appData)
+internal sealed class Installer(
+    GameInstallation layout,
+    IOperationLog log,
+    IAppDataPaths appData,
+    IReadOnlyList<string>? steamClientRoots = null)
 {
     public InstallStatus ReadStatus()
     {
         var entryAssemblyPath = layout.EntryAssemblyPath;
         var managerDll = Path.Combine(layout.ManagerPath, "UnityModManager.dll");
-        var doorstop = DoorstopProbe.Inspect(layout);
+        var doorstop = DoorstopProbe.Inspect(layout, steamClientRoots);
+        var warnings = new List<string>();
+        if (doorstop.NeedsLaunchConfirmation)
+            warnings.Add(DoorstopProbe.UnverifiedLaunchWarning);
         var status = new InstallStatus
         {
             ManagerInstalled = File.Exists(managerDll),
@@ -43,7 +50,6 @@ internal sealed class Installer(GameInstallation layout, IOperationLog log, IApp
         try
         {
             using var module = ModuleDefMD.Load(File.ReadAllBytes(entryAssemblyPath));
-            var warnings = new List<string>();
             status.HookInstalled = HasStarterHook(module);
             status.Injection = DescribeInjection(status.HookInstalled, doorstop.Active);
             if (!doorstop.Active && ValidateEntryPoint(module, createMissing: false) is null)
@@ -55,28 +61,31 @@ internal sealed class Installer(GameInstallation layout, IOperationLog log, IApp
             var configWarning = ReadConfigWarning();
             if (configWarning is not null)
                 warnings.Add(configWarning);
-
-            status.Warning = warnings.Count == 0 ? null : string.Join(Environment.NewLine, warnings);
         }
         catch (Exception ex)
         {
             status.HookInstalled = false;
             status.Injection = doorstop.Active ? InjectionMethod.Doorstop : InjectionMethod.None;
-            status.Warning = $"Could not inspect hook: {ex.Message}";
+            warnings.Add($"Could not inspect hook: {ex.Message}");
         }
 
+        status.Warning = warnings.Count == 0 ? null : string.Join(Environment.NewLine, warnings);
         return status;
     }
 
     public async Task InstallAsync(string? payloadDir, bool forcePayload)
     {
+        var doorstop = DoorstopProbe.Inspect(layout, steamClientRoots);
+        if (doorstop.NeedsLaunchConfirmation)
+            throw new InvalidOperationException(DoorstopProbe.UnverifiedLaunchWarning);
+
         Directory.CreateDirectory(layout.ManagerPath);
         Directory.CreateDirectory(layout.ModsPath);
 
         var payload = await PayloadResolver.ResolveAsync(layout, payloadDir, forceDownload: forcePayload, log, appData);
         CopyPayload(payload, forcePayload);
         WriteGameConfig();
-        if (DoorstopProbe.Inspect(layout).Active)
+        if (doorstop.Active)
             log.Info("UnityDoorstop is already set to launch UnityModManager; left UnityEngine.CoreModule.dll unchanged.");
         else
             PatchEntryAssembly();
@@ -108,7 +117,7 @@ internal sealed class Installer(GameInstallation layout, IOperationLog log, IApp
 
     private bool RemoveOwnedDoorstop()
     {
-        var inspection = DoorstopProbe.Inspect(layout);
+        var inspection = DoorstopProbe.Inspect(layout, steamClientRoots);
         if (!inspection.OwnedByUmm)
             return false;
 
