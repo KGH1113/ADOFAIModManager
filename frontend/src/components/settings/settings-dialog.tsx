@@ -33,6 +33,7 @@ export function SettingsDialog() {
               <SelectItem value="system">{t("settings.system")}</SelectItem>
               <SelectItem value="ko">한국어</SelectItem>
               <SelectItem value="en">English</SelectItem>
+              <SelectItem value="es">Español (Latinoamérica)</SelectItem>
               <SelectItem value="zh">简体中文</SelectItem>
             </SelectContent>
           </Select>
