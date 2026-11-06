@@ -12,17 +12,26 @@ using NativeUmm.Domain.Installation;
 
 namespace NativeUmm.Infrastructure.Installation;
 
-internal sealed class Installer(GameInstallation layout, IOperationLog log, IAppDataPaths appData)
+internal sealed class Installer(
+    GameInstallation layout,
+    IOperationLog log,
+    IAppDataPaths appData,
+    IReadOnlyList<string>? steamClientRoots = null)
 {
     public InstallStatus ReadStatus()
     {
         var entryAssemblyPath = layout.EntryAssemblyPath;
         var managerDll = Path.Combine(layout.ManagerPath, "UnityModManager.dll");
+        var doorstop = DoorstopProbe.Inspect(layout, steamClientRoots);
+        var warnings = new List<string>();
+        if (doorstop.NeedsLaunchConfirmation)
+            warnings.Add(DoorstopProbe.UnverifiedLaunchWarning);
         var status = new InstallStatus
         {
             ManagerInstalled = File.Exists(managerDll),
             HasOriginalBackup = File.Exists(layout.OriginalBackupPath),
-            OriginalBackupPath = layout.OriginalBackupPath
+            OriginalBackupPath = layout.OriginalBackupPath,
+            Injection = doorstop.Active ? InjectionMethod.Doorstop : InjectionMethod.None
         };
 
         if (status.ManagerInstalled)
@@ -41,9 +50,9 @@ internal sealed class Installer(GameInstallation layout, IOperationLog log, IApp
         try
         {
             using var module = ModuleDefMD.Load(File.ReadAllBytes(entryAssemblyPath));
-            var warnings = new List<string>();
             status.HookInstalled = HasStarterHook(module);
-            if (ValidateEntryPoint(module, createMissing: false) is null)
+            status.Injection = DescribeInjection(status.HookInstalled, doorstop.Active);
+            if (!doorstop.Active && ValidateEntryPoint(module, createMissing: false) is null)
                 warnings.Add("Target entry method missing; installer can create static constructor during install.");
 
             if (status.HasOriginalBackup && !OriginalBackupMatches(module, layout.OriginalBackupPath))
@@ -52,42 +61,89 @@ internal sealed class Installer(GameInstallation layout, IOperationLog log, IApp
             var configWarning = ReadConfigWarning();
             if (configWarning is not null)
                 warnings.Add(configWarning);
-
-            status.Warning = warnings.Count == 0 ? null : string.Join(Environment.NewLine, warnings);
         }
         catch (Exception ex)
         {
-            status.Warning = $"Could not inspect hook: {ex.Message}";
+            status.HookInstalled = false;
+            status.Injection = doorstop.Active ? InjectionMethod.Doorstop : InjectionMethod.None;
+            warnings.Add($"Could not inspect hook: {ex.Message}");
         }
 
+        status.Warning = warnings.Count == 0 ? null : string.Join(Environment.NewLine, warnings);
         return status;
     }
 
     public async Task InstallAsync(string? payloadDir, bool forcePayload)
     {
+        var doorstop = DoorstopProbe.Inspect(layout, steamClientRoots);
+        if (doorstop.NeedsLaunchConfirmation)
+            throw new InvalidOperationException(DoorstopProbe.UnverifiedLaunchWarning);
+
         Directory.CreateDirectory(layout.ManagerPath);
         Directory.CreateDirectory(layout.ModsPath);
 
         var payload = await PayloadResolver.ResolveAsync(layout, payloadDir, forceDownload: forcePayload, log, appData);
         CopyPayload(payload, forcePayload);
         WriteGameConfig();
-        PatchEntryAssembly();
+        if (doorstop.Active)
+            log.Info("UnityDoorstop is already set to launch UnityModManager; left UnityEngine.CoreModule.dll unchanged.");
+        else
+            PatchEntryAssembly();
         log.Info("Install / repair complete.");
     }
 
     public void RemoveHook()
     {
-        BackupTimestamped(layout.EntryAssemblyPath);
-        using var module = ModuleDefMD.Load(File.ReadAllBytes(layout.EntryAssemblyPath));
-        var removed = RemoveStarterHook(module);
-        if (!removed)
-        {
+        var removedDoorstop = RemoveOwnedDoorstop();
+        var removedHook = RemoveAssemblyHook();
+        if (!removedHook && !removedDoorstop)
             log.Warn("No hook found.");
-            return;
-        }
+    }
+
+    private bool RemoveAssemblyHook()
+    {
+        if (!File.Exists(layout.EntryAssemblyPath))
+            return false;
+
+        using var module = ModuleDefMD.Load(File.ReadAllBytes(layout.EntryAssemblyPath));
+        if (!RemoveStarterHook(module))
+            return false;
+
+        BackupTimestamped(layout.EntryAssemblyPath);
         WriteModuleAtomically(module, layout.EntryAssemblyPath);
         log.Info("Hook removed.");
+        return true;
     }
+
+    private bool RemoveOwnedDoorstop()
+    {
+        var inspection = DoorstopProbe.Inspect(layout, steamClientRoots);
+        if (!inspection.OwnedByUmm)
+            return false;
+
+        var removed = false;
+        foreach (var path in inspection.Files)
+        {
+            if (!File.Exists(path))
+                continue;
+            BackupTimestamped(path);
+            File.Delete(path);
+            log.Info($"Removed {Path.GetFileName(path)}");
+            removed = true;
+        }
+
+        if (removed)
+            log.Info("Removed UnityDoorstop files that launch UnityModManager.");
+        return removed;
+    }
+
+    private static InjectionMethod DescribeInjection(bool assembly, bool doorstop) => (assembly, doorstop) switch
+    {
+        (true, true) => InjectionMethod.Both,
+        (true, false) => InjectionMethod.Assembly,
+        (false, true) => InjectionMethod.Doorstop,
+        _ => InjectionMethod.None
+    };
 
     public void RestoreOriginal()
     {

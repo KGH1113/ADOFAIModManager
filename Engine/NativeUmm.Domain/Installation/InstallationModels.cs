@@ -1,9 +1,34 @@
 namespace NativeUmm.Domain.Installation;
 
+public enum InjectionMethod
+{
+    None,
+    Assembly,
+    Doorstop,
+    Both
+}
+
+public static class InjectionMethodFormat
+{
+    public const string None = "none";
+    public const string Assembly = "assembly";
+    public const string Doorstop = "doorstop";
+    public const string Both = "both";
+
+    public static string ToProtocol(this InjectionMethod method) => method switch
+    {
+        InjectionMethod.Assembly => Assembly,
+        InjectionMethod.Doorstop => Doorstop,
+        InjectionMethod.Both => Both,
+        _ => None
+    };
+}
+
 public sealed class InstallStatus
 {
     public bool HookInstalled { get; set; }
     public bool ManagerInstalled { get; set; }
+    public InjectionMethod Injection { get; set; }
     public string? ManagerVersion { get; set; }
     public bool HasOriginalBackup { get; set; }
     public string OriginalBackupPath { get; set; } = "";
