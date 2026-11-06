@@ -292,10 +292,17 @@ describe("desktop user journeys", () => {
     expect(document.activeElement).toBe(language);
     await user.keyboard(" ");
     await screen.findByRole("listbox");
-    expect(screen.getAllByRole("option")).toHaveLength(4);
+    expect(screen.getAllByRole("option")).toHaveLength(5);
     await user.keyboard("{Home}{ArrowDown}{Enter}");
     await waitFor(() => expect(usePreferences.getState().language).toBe("ko"));
     expect(language.textContent).toContain("한국어");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    await user.keyboard(" ");
+    await screen.findByRole("listbox");
+    await user.keyboard("{Home}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}");
+    await waitFor(() => expect(usePreferences.getState().language).toBe("es"));
+    expect(language.textContent).toContain("Español (Latinoamérica)");
     expect(screen.queryByRole("listbox")).toBeNull();
     expect(screen.getByRole("dialog")).toBeTruthy();
     await user.keyboard("{Escape}");

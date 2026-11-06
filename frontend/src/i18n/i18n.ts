@@ -16,7 +16,12 @@ export function resolveLanguage(language: string) {
 }
 void i18n.use(initReactI18next).init({
   showSupportNotice: false,
-  resources: { ko: { translation: ko }, en: { translation: en }, es: { translation: es }, zh: { translation: zh } },
+  resources: {
+    ko: { translation: ko },
+    en: { translation: en },
+    es: { translation: es },
+    zh: { translation: zh },
+  },
   lng: resolveLanguage("system"),
   fallbackLng: "en",
   keySeparator: false,
