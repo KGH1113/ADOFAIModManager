@@ -1,12 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { createManifest, validateVersions } from "./prepare-update-release.mjs";
+import { createManifest, selectArtifacts, validateVersions } from "./prepare-update-release.mjs";
 import { verifyManifest } from "./verify-update-release.mjs";
 
 const files = [
-  "mac/ADOFAI Mod Manager.app.tar.gz",
-  "win/manager.exe",
-  "linux/manager.AppImage",
+  "update-aarch64-apple-darwin/macos/ADOFAI Mod Manager.app.tar.gz",
+  "update-x86_64-apple-darwin/macos/ADOFAI Mod Manager.app.tar.gz",
+  "update-x86_64-pc-windows-msvc/nsis/manager.exe",
+  "update-x86_64-unknown-linux-gnu/appimage/manager.AppImage",
 ].flatMap((path) => [path, `${path}.sig`]);
 const signatureWithComment = (comment) =>
   Buffer.from(
@@ -17,20 +18,14 @@ describe("update release manifest", () => {
   it("validates draft placeholder URLs and published URLs without accepting renamed assets", () => {
     const manifest = createManifest("0.3.0", "v0.3.0", "owner/repo", files, () => signature);
     for (const isDraft of [true, false]) {
-      const assets = Object.values(manifest.platforms).flatMap(({ url }) => {
-        const name = new URL(url).pathname.split("/").at(-1);
-        return [
-          {
-            name,
-            state: "uploaded",
-            size: 100,
-            url: isDraft ? url.replace("/v0.3.0/", "/untagged-test/") : url,
-          },
-          { name: `${name}.sig`, size: 10 },
-        ];
-      });
+      const assets = Object.values(manifest.platforms).map(({ url }) => ({
+        name: new URL(url).pathname.split("/").at(-1),
+        state: "uploaded",
+        size: 100,
+        url: isDraft ? url.replace("/v0.3.0/", "/untagged-test/") : url,
+      }));
       const release = { tagName: "v0.3.0", isDraft, assets };
-      expect(verifyManifest(manifest, release)).toBe(3);
+      expect(verifyManifest(manifest, release)).toBe(4);
       expect(() => verifyManifest(manifest, { ...release, assets: assets.slice(1) })).toThrow();
       expect(() => verifyManifest(manifest, { ...release, tagName: "v0.4.0" })).toThrow();
     }
@@ -43,11 +38,26 @@ describe("update release manifest", () => {
       files,
       () => `${signature}\n`,
     );
-    expect(Object.keys(manifest.platforms)).toHaveLength(3);
+    expect(Object.keys(manifest.platforms)).toHaveLength(4);
     expect(manifest.platforms["darwin-aarch64"]).toEqual({
       signature,
-      url: "https://github.com/KGH1113/ADOFAIModManager/releases/download/v0.3.0/ADOFAI.Mod.Manager.app.tar.gz",
+      url: "https://github.com/KGH1113/ADOFAIModManager/releases/download/v0.3.0/ADOFAI.Mod.Manager_aarch64.app.tar.gz",
     });
+    expect(manifest.platforms["darwin-x86_64"]).toEqual({
+      signature,
+      url: "https://github.com/KGH1113/ADOFAIModManager/releases/download/v0.3.0/ADOFAI.Mod.Manager_x64.app.tar.gz",
+    });
+  });
+  it("keeps each macOS archive with the build that produced it", () => {
+    const sources = Object.fromEntries(
+      selectArtifacts(files).map(({ platform, source }) => [platform, source]),
+    );
+    expect(sources["darwin-aarch64"]).toStartWith("update-aarch64-apple-darwin/");
+    expect(sources["darwin-x86_64"]).toStartWith("update-x86_64-apple-darwin/");
+    const misplaced = files.map((path) =>
+      path.replace("update-x86_64-apple-darwin/", "update-aarch64-apple-darwin/intel/"),
+    );
+    expect(() => selectArtifacts(misplaced)).toThrow("darwin-aarch64");
   });
   it("rejects partial releases, duplicate artifacts, empty signatures and mismatched tags", () => {
     expect(() =>
@@ -58,7 +68,11 @@ describe("update release manifest", () => {
         "0.3.0",
         "v0.3.0",
         "a/b",
-        [...files, "extra.exe", "extra.exe.sig"],
+        [
+          ...files,
+          "update-x86_64-pc-windows-msvc/nsis/extra.exe",
+          "update-x86_64-pc-windows-msvc/nsis/extra.exe.sig",
+        ],
         () => signature,
       ),
     ).toThrow();

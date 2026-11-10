@@ -330,7 +330,12 @@ mod tests {
         let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .unwrap();
-        let engine = repository.join("build/tauri-engine-osx-arm64/UMMInstallerEngine");
+        let rid = if cfg!(target_arch = "x86_64") {
+            "osx-x64"
+        } else {
+            "osx-arm64"
+        };
+        let engine = repository.join(format!("build/tauri-engine-{rid}/UMMInstallerEngine"));
         let fixture = tempfile::tempdir().unwrap();
         let game = fixture.path().join("ADanceOfFireAndIce.app");
         let managed = game.join("Contents/Resources/Data/Managed");

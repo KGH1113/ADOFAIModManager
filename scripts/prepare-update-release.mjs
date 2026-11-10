@@ -2,16 +2,35 @@ import { cpSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "nod
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
+// Updater platform -> the release build that produces it (downloaded into
+// `update-<build>/`) and its update file. Both macOS builds produce an
+// identically named .app.tar.gz, so `arch` keeps their release assets apart.
 const targets = {
-  "darwin-aarch64": ".app.tar.gz",
-  "windows-x86_64": ".exe",
-  "linux-x86_64": ".AppImage",
+  "darwin-aarch64": { build: "aarch64-apple-darwin", suffix: ".app.tar.gz", arch: "aarch64" },
+  "darwin-x86_64": { build: "x86_64-apple-darwin", suffix: ".app.tar.gz", arch: "x64" },
+  "windows-x86_64": { build: "x86_64-pc-windows-msvc", suffix: ".exe" },
+  "linux-x86_64": { build: "x86_64-unknown-linux-gnu", suffix: ".AppImage" },
 };
 
 // GitHub normalizes spaces and special characters in uploaded asset names.
 // Normalize before copying and constructing URLs so the manifest matches exactly.
 export function releaseAssetName(path) {
   return basename(path).replace(/[^A-Za-z0-9._-]/g, ".");
+}
+
+export function selectArtifacts(files) {
+  return Object.entries(targets).map(([platform, { build, suffix, arch }]) => {
+    const matches = files.filter(
+      (file) =>
+        file.endsWith(suffix) &&
+        files.includes(`${file}.sig`) &&
+        file.split(/[\\/]/).includes(`update-${build}`),
+    );
+    if (matches.length !== 1) throw new Error(`Expected one signed artifact for ${platform}`);
+    const name = releaseAssetName(matches[0]);
+    const asset = arch ? `${name.slice(0, -suffix.length)}_${arch}${suffix}` : name;
+    return { platform, source: matches[0], asset };
+  });
 }
 
 // This checks version metadata; the updater also verifies the cryptographic signature.
@@ -35,16 +54,13 @@ export function createManifest(version, tag, repository, files, readSignature) {
   }
   if (!/^[\w.-]+\/[\w.-]+$/.test(repository)) throw new Error("Invalid repository");
   const platforms = {};
-  for (const [platform, suffix] of Object.entries(targets)) {
-    const matches = files.filter((file) => file.endsWith(suffix) && files.includes(`${file}.sig`));
-    if (matches.length !== 1) throw new Error(`Expected one signed artifact for ${platform}`);
-    const artifact = matches[0];
-    const signature = readSignature(`${artifact}.sig`).trim();
+  for (const { platform, source, asset } of selectArtifacts(files)) {
+    const signature = readSignature(`${source}.sig`).trim();
     if (!signature) throw new Error(`Empty signature for ${platform}`);
     validateSignedVersion(signature, version, platform);
     platforms[platform] = {
       signature,
-      url: `https://github.com/${repository}/releases/download/${tag}/${releaseAssetName(artifact)}`,
+      url: `https://github.com/${repository}/releases/download/${tag}/${asset}`,
     };
   }
   return { version, platforms };
@@ -80,13 +96,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     );
     mkdirSync(output, { recursive: true });
     if (notesFile) manifest.notes = readFileSync(notesFile, "utf8");
-    for (const platform of Object.values(manifest.platforms)) {
-      const name = decodeURIComponent(new URL(platform.url).pathname.split("/").at(-1));
-      const source = files.find((file) => releaseAssetName(file) === name);
-      cpSync(source, join(output, name));
-      cpSync(`${source}.sig`, join(output, `${name}.sig`));
-    }
-    // Include the macOS first-install DMG alongside the updater archive.
+    // Signatures ship inside latest.json; the updater never downloads .sig files.
+    for (const { source, asset } of selectArtifacts(files)) cpSync(source, join(output, asset));
+    // Include the macOS first-install DMGs (named per architecture) alongside the updater archives.
     for (const file of files.filter((path) => path.endsWith(".dmg")))
       cpSync(file, join(output, releaseAssetName(file)));
     writeFileSync(join(output, "latest.json"), `${JSON.stringify(manifest, null, 2)}\n`);

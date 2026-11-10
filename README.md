@@ -16,7 +16,7 @@ ADOFAI용 Unity Mod Manager 설치 및 모드 관리 앱입니다. macOS·Window
 
 ## 개발
 
-개발 환경에는 Bun 1.3.11, Rust stable, .NET 10 SDK와 각 플랫폼의 네이티브 빌드 도구가 필요합니다. macOS는 Xcode Command Line Tools, Windows는 C++ 데스크톱 빌드 도구와 WebView2를 사용합니다. macOS 최소 버전은 14입니다.
+개발 환경에는 Bun 1.3.11, Rust stable, .NET 10 SDK와 각 플랫폼의 네이티브 빌드 도구가 필요합니다. macOS는 Xcode Command Line Tools, Windows는 C++ 데스크톱 빌드 도구와 WebView2를 사용합니다. macOS 최소 버전은 Apple Silicon 빌드가 14, Intel 빌드가 12입니다. Intel 빌드의 하한은 .NET 10 Native AOT가 지원하는 가장 낮은 버전입니다.
 
 프론트엔드 테스트는 Node.js 22.12 이상으로 실행합니다. Windows에서 사용할 수 있는 Node.js가 없으면 테스트 실행기가 공식 Node.js 22 배포본을 내려받아 SHA-256을 검증하고 `%LOCALAPPDATA%/ADOFAIModManager/tools/`에 캐시합니다. 최초 다운로드에는 네트워크가 필요하며 소스 작업 폴더는 변경하지 않습니다. 직접 설치한 실행 파일은 `AMM_NODE_BINARY`로 지정할 수 있습니다.
 
@@ -43,13 +43,14 @@ bun run prepare:desktop
 bun run check:desktop
 bun run build --bundles app              # macOS
 bun run build --bundles app,dmg          # macOS 배포 이미지
+bun run build --target x86_64-apple-darwin --bundles app,dmg --config src-tauri/tauri.intel-mac.conf.json  # Intel Mac에서 실행
 bun run build --bundles nsis             # Windows에서 실행
 bun run build:linux                     # Linux에서 .deb와 AppImage 생성
 ```
 
 macOS 앱은 `build/ADOFAI Mod Manager.app`에 복사됩니다. 원본 번들과 플랫폼별 설치 파일은 `src-tauri/target/release/bundle/`에 생성됩니다. `--target`을 명시하면 `src-tauri/target/<target>/release/bundle/`에 생성됩니다. 각 플랫폼의 빌드는 해당 OS에서 실행하세요. macOS ARM64·x64, Windows x64·ARM64, Linux GNU x64·ARM64 엔진 타깃을 지원합니다. Linux ARM64에서는 `bun run build --target aarch64-unknown-linux-gnu --bundles deb`를 사용하세요. [AppImage 도구는 ARM 교차 컴파일을 지원하지 않습니다.](https://v2.tauri.app/distribute/appimage/)
 
-CI는 macOS ARM64, Windows x64, Linux x64에서 프론트엔드·설치 엔진·Rust 테스트 및 앱 패키징을 수행합니다. Linux 결과물은 `.deb`와 AppImage입니다. 로컬 macOS 빌드는 개발용 서명이며, 배포용 Developer ID 서명과 공증은 별도로 구성합니다.
+CI는 macOS ARM64·Intel x64, Windows x64, Linux x64에서 프론트엔드·설치 엔진·Rust 테스트 및 앱 패키징을 수행합니다. Linux 결과물은 `.deb`와 AppImage입니다. 로컬 macOS 빌드는 개발용 서명이며, 배포용 Developer ID 서명과 공증은 별도로 구성합니다.
 
 Linux 게임 탐색은 일반 Steam·Flatpak Steam·추가 Steam 라이브러리와 수동 선택을 지원하며, 네이티브 Unity Mono 및 Proton의 Windows 게임 폴더를 인식합니다. 실제 게임 실행 및 모드 호환성은 별도 검증이 필요합니다.
 

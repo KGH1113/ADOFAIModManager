@@ -21,9 +21,6 @@ export function verifyManifest(manifest, release) {
       uploaded.pathname = parts.join("/");
     }
     if (uploaded.href !== url.href) throw new Error(`Incorrect release URL: ${platform}`);
-    if (!release.assets.some((item) => item.name === `${asset.name}.sig` && item.size > 0)) {
-      throw new Error(`Missing signature asset: ${platform}`);
-    }
   }
   return Object.keys(manifest.platforms).length;
 }

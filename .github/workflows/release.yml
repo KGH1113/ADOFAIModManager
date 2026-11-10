@@ -22,6 +22,11 @@ jobs:
           - os: macos-15
             target: aarch64-apple-darwin
             bundles: app,dmg
+          # Separate Intel build so older Intel Macs (macOS 12+) are supported.
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+            config: src-tauri/tauri.intel-mac.conf.json
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             bundles: nsis
@@ -75,7 +80,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: bun run tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config src-tauri/tauri.release.conf.json
+        run: bun run tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config src-tauri/tauri.release.conf.json ${{ matrix.config && format('--config {0}', matrix.config) || '' }}
       - name: Remove bundled libwayland-client from AppImage
         # The bundled copy breaks EGL on newer Wayland systems (EGL_BAD_PARAMETER).
         # Wayland sessions always provide the system library.

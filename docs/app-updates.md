@@ -31,13 +31,13 @@ GitHub 저장소의 Actions secrets에 다음 값을 등록한다.
 
 1. `package.json`, `frontend/package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`의 버전을 동일하게 올린다. 필요한 잠금 파일도 갱신한다.
 2. 커밋을 준비하고 같은 버전의 `vX.Y.Z` 태그를 push한다. 기존 태그는 Release 워크플로에서 수동으로 실행할 수도 있다.
-3. Release 워크플로가 검사 후 macOS ARM64, Windows x64, Linux x64용 파일을 빌드한다. `tauri.release.conf.json`을 적용하는 릴리스 빌드에서만 업데이트 아티팩트 서명이 필요하다.
-4. 모든 빌드가 성공하면 서명 파일과 `latest.json`을 합쳐 **초안 릴리스**를 만든다. 불완전한 플랫폼 구성은 거부한다. 생성된 릴리스 노트는 앱의 변경 사항에도 포함된다.
+3. Release 워크플로가 검사 후 macOS ARM64·Intel x64, Windows x64, Linux x64용 파일을 빌드한다. `tauri.release.conf.json`을 적용하는 릴리스 빌드에서만 업데이트 아티팩트 서명이 필요하다.
+4. 모든 빌드가 성공하면 각 서명을 `latest.json`에 넣어 **초안 릴리스**를 만든다. 업데이트는 manifest의 서명만 사용하므로 `.sig` 파일은 업로드하지 않는다. 불완전한 플랫폼 구성은 거부한다. 생성된 릴리스 노트는 앱의 변경 사항에도 포함된다.
 5. 각 OS에서 이전 버전 → 후보 버전으로 설치·재시작을 검증한 뒤 초안을 정식 최신 릴리스로 공개한다. 사전 릴리스로 게시하면 정식 업데이트 채널에는 노출되지 않는다.
 
 `ci.yml`은 프런트엔드 타입·스타일·테스트·빌드를 한 번 실행하고, Windows/macOS/Linux에서 엔진 검사, 배포 엔진 프로토콜 검사, Rust 포맷·테스트를 실행한다. 설치 파일 패키징과 서명은 `release.yml`에서만 실행한다. CI에서는 무거운 UI 테스트가 공유 러너에서 경합하지 않도록 worker 수를 제한한다.
 
-릴리스 파일명은 업로드 전에 공백 등을 점으로 정규화한다. GitHub가 파일명을 변경해 manifest의 다운로드 URL이 깨지지 않도록, 업로드 후 실제 파일명·크기·서명 파일·다운로드 URL을 대조한다. 초안의 `untagged-*` URL은 공개 시 실제 버전 태그로 바뀌는 점도 검증에 반영한다.
+릴리스 파일명은 업로드 전에 공백 등을 점으로 정규화한다. GitHub가 파일명을 변경해 manifest의 다운로드 URL이 깨지지 않도록, 업로드 후 실제 파일명·크기·manifest 서명의 버전·다운로드 URL을 대조한다. 초안의 `untagged-*` URL은 공개 시 실제 버전 태그로 바뀌는 점도 검증에 반영한다.
 
 앱은 `https://github.com/KGH1113/ADOFAIModManager/releases/latest/download/latest.json`을 확인한다. 저장소를 이전하면 이 주소와 릴리스 생성 설정을 함께 검토해야 한다.
 
@@ -46,7 +46,8 @@ GitHub 저장소의 Actions secrets에 다음 값을 등록한다.
 ## 지원 범위와 검증
 
 - Windows는 NSIS 설치 프로그램, macOS는 `.app.tar.gz`, Linux는 **AppImage**로 업데이트한다. Linux `.deb` 설치본의 자동 업데이트는 지원 대상으로 삼지 않는다.
-- macOS Intel 빌드는 현재 배포 매트릭스에 없으며, 추가 시 manifest 생성기의 대상 목록도 확장해야 한다.
+- macOS는 Apple Silicon(`darwin-aarch64`, macOS 14+)과 Intel(`darwin-x86_64`, macOS 12+)을 별도 빌드로 배포한다. Intel 빌드는 `macos-15-intel` 러너에서 `src-tauri/tauri.intel-mac.conf.json`을 덧씌워 만든다. 두 빌드의 `.app.tar.gz` 이름이 같으므로 릴리스 파일명에 `_aarch64`·`_x64`를 붙여 구분하고, manifest 생성기는 CI 아티팩트 폴더(`update-<target>/`)로 각 아키텍처의 파일을 고른다.
+- 업데이트는 최소 macOS 버전을 확인하지 않으므로, 각 빌드의 `minimumSystemVersion`을 올리면 그보다 낮은 OS 사용자도 실행할 수 없는 업데이트를 받는다. 또 .NET은 자기 하한보다 낮은 버전 지정을 조용히 올려버리므로, `prepare-desktop.mjs`는 빌드된 엔진의 최소 macOS가 앱 설정보다 높으면 빌드를 실패시킨다. 이때는 .NET 버전을 되돌리거나, 실행할 수 없게 되는 사용자를 감안하고 설정의 최소 버전을 올린다.
 - 업데이트 파일은 다운로드 후 서명과 서명된 버전까지 검증한다. 설치 직전에는 네이티브 엔진 잠금과 모드 다운로드 상태도 확인한다.
 - 다운로드는 프로세스 메모리에 보관하므로 설치 전에 앱을 종료하면 다음 실행에서 다시 다운로드한다.
 - 자동화 검사: `bun run check`, `bun run check:release`, `bun run check:desktop`, `bun run frontend:build`.
